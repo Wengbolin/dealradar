@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block content %}
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="container">
+
+<h2 data-i18n="market_radar">Market Radar</h2>
+<p data-i18n="realtime_market_intelligence">Real-time market intelligence</p>
+
+<div class="grid">
+
+<div class="card">
+<h3 data-i18n="hot_models">Hot Models</h3>
+<canvas id="hot_models_chart" height="200"></canvas>
+</div>
+
+<div class="card">
+<h3 data-i18n="arbitrage_index">Arbitrage Index</h3>
+<canvas id="arbitrage_chart" height="200"></canvas>
+</div>
+
+<div class="card">
+<h3 data-i18n="velocity_index">Velocity Index</h3>
+<canvas id="velocity_chart" height="200"></canvas>
+</div>
+
+</div>
+
+<script>
+
+fetch("/api/radar/hot_models",{
+headers:{
+"Authorization":"Bearer " + localStorage.getItem("token")
+}
+})
+.then(res => res.json())
+.then(data => {
+
+const labels = data.map(i => i.model)
+const values = data.map(i => i.listings)
+
+const ctx = document.getElementById("hot_models_chart")
+
+new Chart(ctx,{
+type:"bar",
+data:{
+labels:labels,
+datasets:[{
+label:"Hot Models",
+data:values
+}]
+}
+})
+
+})
+
+fetch("/api/radar/arbitrage_index",{
+headers:{
+"Authorization":"Bearer " + localStorage.getItem("token")
+}
+})
+.then(res => res.json())
+.then(data => {
+
+const labels = data.map(i => i.model)
+const values = data.map(i => i.profit)
+
+const ctx = document.getElementById("arbitrage_chart")
+
+new Chart(ctx,{
+type:"bar",
+data:{
+labels:labels,
+datasets:[{
+label:"Arbitrage Index (€)",
+data:values
+}]
+}
+})
+
+})
+
+fetch("/api/radar/velocity",{
+headers:{
+"Authorization":"Bearer " + localStorage.getItem("token")
+}
+})
+.then(res => res.json())
+.then(data => {
+
+const labels = data.map(i => i.model)
+const values = data.map(i => i.lifetime)
+
+const ctx = document.getElementById("velocity_chart")
+
+new Chart(ctx,{
+type:"bar",
+data:{
+labels:labels,
+datasets:[{
+label:"Velocity (hours to sell)",
+data:values
+}]
+}
+})
+
+})
+
+</script>
+
+{% endblock %}

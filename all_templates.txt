@@ -1,0 +1,2310 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title data-i18n="cancel_subscription__dealradar">Cancel Subscription - DealRadar</title>
+
+<style>
+body{
+font-family:Arial;
+background:#0f172a;
+color:white;
+text-align:center;
+padding:40px;
+}
+
+.card{
+background:#1e293b;
+padding:30px;
+border-radius:10px;
+width:420px;
+margin:auto;
+}
+
+h2{margin-bottom:20px;}
+
+.option{
+text-align:left;
+margin:8px 0;
+}
+
+button{
+margin-top:20px;
+padding:10px 20px;
+border:none;
+border-radius:6px;
+cursor:pointer;
+}
+
+.submit{background:#ef4444;color:white;}
+.skip{background:#64748b;color:white;}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h2 data-i18n="why_are_you_cancelling">Why are you cancelling?</h2>
+
+<form id="survey">
+
+<div class="option"><input type="radio" name="reason" value="Too expensive"> Too expensive</div>
+<div class="option"><input type="radio" name="reason" value="Not enough deals"> Not enough deals</div>
+<div class="option"><input type="radio" name="reason" value="Data inaccurate"> Data inaccurate</div>
+<div class="option"><input type="radio" name="reason" value="Hard to use"> Hard to use</div>
+<div class="option"><input type="radio" name="reason" value="Stopped reselling"> I stopped reselling</div>
+<div class="option"><input type="radio" name="reason" value="Found another tool"> Found another tool</div>
+<div class="option"><input type="radio" name="reason" value="System slow"> System slow</div>
+<div class="option"><input type="radio" name="reason" value="Just testing"> Just testing</div>
+<div class="option"><input type="radio" name="reason" value="Missing features"> Missing features</div>
+<div class="option"><input type="radio" name="reason" value="Other"> Other</div>
+
+<button type="button" class="submit" onclick="submitSurvey()" data-i18n="submit__cancel">Submit & Cancel</button>
+<button type="button" class="skip" onclick="cancelDirect()" data-i18n="skip__cancel">Skip & Cancel</button>
+
+</form>
+
+</div>
+
+<script>
+
+async function submitSurvey(){
+
+let reason=document.querySelector('input[name="reason"]:checked');
+
+if(!reason){
+alert("Please select a reason");
+return;
+}
+
+await fetch("/api/cancel_feedback",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+reason:reason.value
+})
+});
+
+cancelDirect();
+
+}
+
+async function cancelDirect(){
+
+await fetch("/api/cancel_subscription",{method:"POST"});
+
+alert("Subscription cancelled. Access will remain until the end of your billing period.");
+
+window.location="/account";
+
+}
+
+</script>
+
+</body>
+</html>
+{% extends "base.html" %}
+{% block content %}
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="container">
+
+<h2 data-i18n="market_radar">Market Radar</h2>
+<p data-i18n="realtime_market_intelligence">Real-time market intelligence</p>
+
+<div class="grid">
+
+<div class="card">
+<h3 data-i18n="hot_models">Hot Models</h3>
+<canvas id="hot_models_chart" height="200"></canvas>
+</div>
+
+<div class="card">
+<h3 data-i18n="arbitrage_index">Arbitrage Index</h3>
+<canvas id="arbitrage_chart" height="200"></canvas>
+</div>
+
+<div class="card">
+<h3 data-i18n="velocity_index">Velocity Index</h3>
+<canvas id="velocity_chart" height="200"></canvas>
+</div>
+
+</div>
+
+<script>
+
+fetch("/api/radar/hot_models",{
+headers:{
+"Authorization":"Bearer " + localStorage.getItem("token")
+}
+})
+.then(res => res.json())
+.then(data => {
+
+const labels = data.map(i => i.model)
+const values = data.map(i => i.listings)
+
+const ctx = document.getElementById("hot_models_chart")
+
+new Chart(ctx,{
+type:"bar",
+data:{
+labels:labels,
+datasets:[{
+label:"Hot Models",
+data:values
+}]
+}
+})
+
+})
+
+fetch("/api/radar/arbitrage_index",{
+headers:{
+"Authorization":"Bearer " + localStorage.getItem("token")
+}
+})
+.then(res => res.json())
+.then(data => {
+
+const labels = data.map(i => i.model)
+const values = data.map(i => i.profit)
+
+const ctx = document.getElementById("arbitrage_chart")
+
+new Chart(ctx,{
+type:"bar",
+data:{
+labels:labels,
+datasets:[{
+label:"Arbitrage Index (€)",
+data:values
+}]
+}
+})
+
+})
+
+fetch("/api/radar/velocity",{
+headers:{
+"Authorization":"Bearer " + localStorage.getItem("token")
+}
+})
+.then(res => res.json())
+.then(data => {
+
+const labels = data.map(i => i.model)
+const values = data.map(i => i.lifetime)
+
+const ctx = document.getElementById("velocity_chart")
+
+new Chart(ctx,{
+type:"bar",
+data:{
+labels:labels,
+datasets:[{
+label:"Velocity (hours to sell)",
+data:values
+}]
+}
+})
+
+})
+
+</script>
+
+{% endblock %}
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+
+/* ===== SECTION（纵向结构核心）===== */
+.section{
+max-width:1100px;
+margin:40px auto;
+padding:40px 20px;
+border-top:1px solid #1F2937;
+}
+
+/* ===== HERO ===== */
+.hero{
+display:flex;
+flex-direction:column;
+align-items:center;
+padding:60px 20px 30px;
+}
+
+.hero-card{
+background:linear-gradient(145deg,#111827,#0b1220);
+border:1px solid #263041;
+border-radius:18px;
+padding:35px;
+width:650px;
+text-align:center;
+}
+
+.hero-profit{
+font-size:42px;
+font-weight:800;
+color:#22C55E;
+}
+
+/* ===== CARDS ===== */
+.cards{
+display:flex;
+gap:20px;
+flex-wrap:wrap;
+}
+
+.card{
+background:#111827;
+border:1px solid #263041;
+border-radius:14px;
+padding:20px;
+width:260px;
+}
+
+/* ===== DEALS（改为 GRID）===== */
+.deals{
+display:grid;
+grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+gap:20px;
+}
+
+.deal{
+background:#111827;
+border:1px solid #263041;
+border-radius:14px;
+padding:20px;
+}
+
+.deal.big{
+grid-column: span 2;
+border:2px solid #22C55E;
+background:#0f172a;
+}
+
+.profit{
+font-size:28px;
+font-weight:800;
+color:#22C55E;
+}
+
+/* ===== BUTTON ===== */
+.btn{
+display:block;
+margin-top:10px;
+padding:10px;
+border-radius:8px;
+text-align:center;
+background:#22C55E;
+color:#000;
+text-decoration:none;
+font-weight:bold;
+}
+
+</style>
+
+<!-- ===== HERO ===== -->
+<div class="hero">
+
+<div class="hero-card">
+
+<div style="font-size:14px;color:#9CA3AF;" data-i18n="hero__subtitle">
+💸 You are missing profit RIGHT NOW
+</div>
+
+<div class="hero-profit" id="heroProfit">
++€120
+</div>
+
+<div style="margin-top:6px;color:#CBD5F5;" id="heroModel">
+iPhone flipping opportunity
+</div>
+
+<div style="margin-top:10px;font-size:13px;color:#F59E0B;" data-i18n="hero__urgency">
+⏳ This deal may disappear in hours
+</div>
+
+<a href="/pricing" class="btn" style="margin-top:15px;" data-i18n="hero__cta">
+Make This Profit Now
+</a>
+
+</div>
+
+<div style="max-width:650px;margin:20px auto 0 auto;text-align:center;">
+
+<div style="font-size:13px;color:#94A3B8;" data-i18n="stats__listings">
+✔ 12,000+ listings analyzed today
+</div>
+
+<div style="font-size:13px;color:#94A3B8;" data-i18n="stats__deals">
+✔ 1,200+ profitable deals detected
+</div>
+
+<div style="font-size:13px;color:#94A3B8;" data-i18n="stats__avg_profit">
+✔ Avg profit per deal: €85
+</div>
+
+<div style="margin-top:6px;font-size:13px;color:#22C55E;" data-i18n="hero__real">
+🔥 Real market data · Real opportunities
+</div>
+
+<div style="margin-top:10px;font-size:13px;color:#F59E0B;" data-i18n="hero__live">
+⚡ Live signals updated every minute
+</div>
+
+</div>
+
+</div>
+
+<!-- ===== MARKET ===== -->
+<div class="section">
+<h2 data-i18n="home__market_snapshot">📊 Market Snapshot</h2>
+<div id="market" class="cards"></div>
+</div>
+
+<!-- ===== LISTINGS ===== -->
+<div class="section">
+<h2 data-i18n="home__listings">🔥 High Quality Listings</h2>
+<div id="listings" class="cards"></div>
+</div>
+
+<!-- ===== SIGNALS ===== -->
+<div class="section">
+<h2 data-i18n="home__signals">🚨 Deal Signals</h2>
+<div id="signals" class="cards"></div>
+</div>
+
+<!-- ===== DEALS ===== -->
+<div class="section">
+<h2 data-i18n="home__live_deals">🔥 Live Deals</h2>
+<div id="deals" class="deals"></div>
+</div>
+
+<script>
+
+async function init(){
+
+const res = await fetch("/api/home")
+const data = await res.json()
+
+renderHero(data)
+renderMarket(data)
+renderListings(data)
+renderSignals(data)
+renderDeals(data)
+
+}
+
+/* ===== HERO ===== */
+function renderHero(data){
+
+if(!data.top_deals || data.top_deals.length === 0) return
+
+const d = data.top_deals[0]
+
+document.getElementById("heroProfit").innerText = "+€"+d.profit
+document.getElementById("heroModel").innerText = d.title
+
+}
+
+/* ===== MARKET ===== */
+function renderMarket(data){
+
+const container = document.getElementById("market")
+container.innerHTML = ""
+
+const list = data.market || []
+
+list.slice(0,4).forEach(m=>{
+
+container.innerHTML += `
+<div class="card">
+<h3>${m.model}</h3>
+<div data-i18n="market__price">Market: €${m.price}</div>
+<div data-i18n="market__range">Range: €${m.low} - €${m.high}</div>
+<div data-i18n="market__liquidity">Liquidity: ${m.liquidity}</div>
+</div>
+`
+
+})
+
+}
+
+/* ===== LISTINGS ===== */
+function renderListings(data){
+
+const container = document.getElementById("listings")
+container.innerHTML = ""
+
+const list = data.all_deals || []
+
+list.sort((a,b)=> (b.profit||0) - (a.profit||0))
+
+list.slice(0,4).forEach(d=>{
+
+container.innerHTML += `
+<div class="card">
+<h3>${d.title.substring(0,20)}</h3>
+<div>€${d.price}</div>
+<div data-i18n="market__price">Market: €${d.market_price || "-"}</div>
+</div>
+`
+
+})
+
+}
+
+/* ===== SIGNALS ===== */
+function renderSignals(data){
+
+const container = document.getElementById("signals")
+container.innerHTML = ""
+
+const list = data.all_deals || []
+
+list.sort((a,b)=> (b.profit||0) - (a.profit||0))
+
+list.slice(0,3).forEach(d=>{
+
+container.innerHTML += `
+<div class="card">
+<div class="profit">💰 €${d.profit}</div>
+<div>${d.title.substring(0,25)}</div>
+<a href="/signals" class="btn" data-i18n="signals__view">View Signal</a>
+</div>
+`
+
+})
+
+}
+
+/* ===== DEALS（重点：分层结构）===== */
+function renderDeals(data){
+
+const container = document.getElementById("deals")
+container.innerHTML = ""
+
+const list = data.all_deals || []
+
+list.sort((a,b)=> (b.profit||0) - (a.profit||0))
+
+const top = list[0]
+const rest = list.slice(1,6)
+
+if(top){
+container.innerHTML += `
+<div class="deal big">
+
+<div class="profit">🔥 +€${top.profit}</div>
+<div>${top.title.substring(0,40)}</div>
+<div data-i18n="signals__buy">Buy €${top.price}</div>
+<div data-i18n="signals__sell">Sell €${top.market_price || "-"}</div>
+<a href="/pricing" class="btn" data-i18n="hero__cta">Take This Deal</a>
+
+</div>
+`
+}
+
+rest.forEach(d=>{  
+container.innerHTML += ` 
+<div class="deal"> 
+
+<div class="profit">💰 +€${d.profit}</div>
+<div>${d.title.substring(0,25)}</div>
+<a href="/pricing" class="btn" data-i18n="signals__buy">Buy</a>
+
+</div>
+`
+})
+
+}
+
+init()
+
+</script>
+
+{% endblock %}
+{% extends "base.html" %}
+{% block content %}
+
+<div class="section">
+
+<h2 data-i18n="signals__title"></h2>
+
+<div id="signals" class="grid"></div>
+
+</div>
+
+<style>
+
+.grid{
+display:flex;
+flex-wrap:wrap;
+gap:20px;
+}
+
+.signal-card{
+background:#111827;
+border:1px solid #263041;
+border-radius:16px;
+padding:20px;
+width:300px;
+}
+
+.profit{
+font-size:28px;
+font-weight:800;
+color:#22C55E;
+margin-bottom:10px;
+}
+
+.btn{
+margin-top:10px;
+display:block;
+text-align:center;
+}
+
+.locked{
+opacity:0.5;
+position:relative;
+}
+
+.locked::after{
+content:"🔒 Pro";
+position:absolute;
+top:10px;
+right:10px;
+color:#F59E0B;
+font-size:12px;
+}
+
+</style>
+
+<script>
+
+async function loadSignals(){
+
+    const res = await fetch("/api/home")
+    const data = await res.json()
+
+    const list = data.top_deals || []
+
+    const container = document.getElementById("signals")
+    container.innerHTML = ""
+
+    list.slice(0,6).forEach((d,i)=>{
+
+        const locked = i >= 1
+
+        const div = document.createElement("div")
+        div.className = "signal-card " + (locked ? "locked" : "")
+
+        div.innerHTML = `
+
+        <div class="profit">
+        ${locked ? t("signals__locked_profit") : "💰 €"+d.profit}
+        </div>
+
+        <div>📱 ${d.title}</div>
+
+        <div>${t("signals__buy",{price: locked ? "???" : d.price})}</div>
+        <div>${t("signals__sell",{price: locked ? "???" : (d.market_price || "-")})}</div>
+
+        <div style="margin-top:8px;font-size:13px;color:#F59E0B;">
+        ${locked ? t("signals__missing") : t("signals__high")}
+        </div>
+
+        <a href="/pricing" class="btn">
+
+        ${locked 
+            ? t("signals__unlock",{profit: d.profit || 50}) 
+            : t("signals__cta")}
+
+        <div style="font-size:12px;color:#94A3B8;margin-top:6px;">
+        ${locked ? t("signals__unlock_sub") : t("signals__cta_sub")}
+        </div>
+
+        </a>
+        `
+
+        container.appendChild(div)
+
+    })
+
+}
+
+loadSignals()
+
+</script>
+
+{% endblock %}
+{% extends "base.html" %}
+{% block content %}
+
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+<title data-i18n="admin">Admin</title>
+
+
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="card">
+<h2 data-i18n="dealradar_admin">DealRadar Admin</h2>
+
+<div class="stat">
+Total Users: {{users}}
+</div>
+
+<div class="stat">
+Premium Users: {{premium}}
+</div>
+
+</div>
+
+</div>
+
+{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<title data-i18n="dealradar">DealRadar</title>
+<link rel="icon" href="/static/favicon.ico">
+
+<link rel="stylesheet" href="/static/css/main.css">
+
+<style>
+body{
+background:#070B10;
+color:#F1F5F9;
+font-family:Inter, Arial;
+}
+
+.container{
+max-width:1100px;
+margin:auto;
+padding:30px 20px;
+}
+
+.card{
+background:#111827;
+border:1px solid #263041;
+border-radius:14px;
+padding:20px;
+}
+
+h1,h2,h3{
+color:#E6EDF3;
+}
+
+.btn{
+display:inline-block;
+padding:10px 16px;
+border-radius:8px;
+background:#22C55E;
+color:#000;
+font-weight:bold;
+text-decoration:none;
+cursor:pointer;
+}
+
+.btn-secondary{
+background:#1F2937;
+color:#CBD5F5;
+}
+
+.section{
+margin-bottom:40px;
+}
+</style>
+
+<script src="/static/js/api.js"></script>
+
+</head>
+
+<body>
+
+<nav>
+
+<div class="logo">
+<a href="/" data-i18n="dealradar">DealRadar</a>
+</div>
+
+<div class="menu">
+
+<a href="/" data-i18n="home"
+{% if request.url.path == '/' %}class="active"{% endif %}>
+Home
+</a>
+
+<a href="/market" data-i18n="market"
+{% if request.url.path.startswith('/market') %}class="active"{% endif %}>
+Market
+</a>
+
+<a href="/signals" data-i18n="signals"
+{% if request.url.path.startswith('/signals') %}class="active"{% endif %}>
+Signals
+</a>
+
+<a href="/deals" data-i18n="deals"
+{% if request.url.path.startswith('/deals') %}class="active"{% endif %}>
+Deals
+</a>
+
+<a href="/pricing" data-i18n="pricing"
+{% if request.url.path.startswith('/pricing') %}class="active"{% endif %}>
+Pricing
+</a>
+
+</div>
+
+<div class="right-menu">
+
+<div class="langMenu">
+
+<button onclick="toggleLangMenu()" class="langBtn">
+🌐 Language
+</button>
+
+<div id="langDropdown" class="langDropdown">
+
+<div onclick="changeLang('en')" data-i18n="english">English</div>
+<div onclick="changeLang('it')" data-i18n="italiano">Italiano</div>
+<div onclick="changeLang('zh')" data-i18n="chinese">中文</div>
+<div onclick="changeLang('bn')" data-i18n="bangla">বাংলা</div>
+
+</div>
+
+</div>
+
+<a href="/login" data-i18n="login"
+{% if request.url.path.startswith('/login') %}class="login-btn"{% endif %}>
+Login
+</a>
+
+<a href="/account" data-i18n="account"
+{% if request.url.path.startswith('/account') %}class="active"{% endif %}>
+Account
+</a>
+
+</div>
+
+</nav>
+
+<div class="container">
+{% block content %}{% endblock %}
+</div>
+
+<script>
+
+/* ===== 🌍 全局 i18n 系统 ===== */
+
+let LANG = localStorage.getItem("lang") || "en"
+let dict = {}
+
+async function loadLang(lang = LANG){
+
+LANG = lang
+localStorage.setItem("lang", LANG)
+
+const res = await fetch("/static/lang/" + LANG + ".json")
+dict = await res.json()
+
+applyTranslations()
+}
+
+function applyTranslations(){
+
+document.querySelectorAll("[data-i18n]").forEach(el=>{
+    const key = el.dataset.i18n
+    if(dict[key]){
+        el.innerText = dict[key]
+    }
+})
+
+}
+
+function t(key, vars = {}){
+let str = dict[key] || key
+
+Object.keys(vars).forEach(k=>{
+    str = str.replace(`{${k}}`, vars[k])
+})
+
+return str
+}
+
+function changeLang(lang){
+loadLang(lang)
+}
+
+/* ===== UI ===== */
+
+function toggleLangMenu(){
+
+const menu = document.getElementById("langDropdown")
+
+const visible = window.getComputedStyle(menu).display
+
+menu.style.display = visible === "none" ? "block" : "none"
+}
+
+document.addEventListener("click", function(e){
+
+const menu = document.getElementById("langDropdown")
+
+if(!e.target.closest(".langMenu")){
+menu.style.display = "none"
+}
+
+})
+
+/* ===== 初始化 ===== */
+// ❌ 删除这行
+// loadLang()
+
+</script>
+
+</body>
+</html>
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.deal-card{
+background:#111827;
+border:1px solid #263041;
+border-radius:16px;
+padding:20px;
+width:100%;
+box-sizing:border-box;
+transition:0.25s;
+box-shadow:0 6px 25px rgba(0,0,0,0.6);
+overflow:hidden;
+}
+
+.deal-card:hover{
+transform:translateY(-5px);
+background:#1F2937;
+}
+
+.grid{
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+gap: 24px;
+margin-top: 20px;
+align-items: stretch;
+}
+
+.section{
+max-width:1200px;
+margin:auto;
+padding:20px;
+}
+
+.profit{
+font-size:32px;
+font-weight:800;
+color:#22C55E;
+margin-bottom:10px;
+}
+
+.tag{
+display:inline-block;
+padding:4px 8px;
+border-radius:6px;
+font-size:11px;
+margin-bottom:8px;
+}
+
+.a{background:#22C55E22;color:#22C55E;}
+.b{background:#F59E0B22;color:#F59E0B;}
+.c{background:#EF444422;color:#EF4444;}
+
+.btn{
+margin-top:12px;
+padding:10px;
+border-radius:8px;
+text-align:center;
+font-weight:bold;
+text-decoration:none;
+display:block;
+}
+
+.buy{background:#22C55E;color:#000;}
+.watch{background:#F59E0B;color:#000;}
+.skip{background:#374151;color:#aaa;}
+
+.locked{
+opacity:0.5;
+position:relative;
+}
+
+.locked::after{
+content:"🔒 Pro";
+position:absolute;
+top:10px;
+right:10px;
+color:#F59E0B;
+font-size:12px;
+}
+</style>
+
+<div class="section">
+
+<h2 data-i18n="deals__title"></h2>
+
+<div id="deals" class="grid"></div>
+
+</div>
+
+<script>
+
+async function loadDeals(){
+
+    const res = await fetch("/api/arbitrage",{
+        headers:{
+            "Authorization":"Bearer " + localStorage.getItem("token")
+        }
+    })
+
+    const data = await res.json()
+    let deals = data || []
+
+    renderDeals(deals.slice(0,9))
+}
+
+function renderDeals(deals){
+
+    const container = document.getElementById("deals")
+    container.innerHTML = ""
+
+    deals.forEach((d,i)=>{
+
+        const profit = d.profit || 0
+
+        let level = d.level || "C级"
+
+        let levelClass = "c"
+        if(level === "A级") levelClass = "a"
+        if(level === "B级") levelClass = "b"
+
+        let btnClass = "skip"
+
+        if(profit >= 80){
+            btnClass = "buy"
+        }
+        else if(profit >= 40){
+            btnClass = "watch"
+        }
+
+        const locked = i >= 1
+
+        const div = document.createElement("div")
+        div.className = "deal-card " + (locked ? "locked" : "")
+
+        div.innerHTML = `
+
+        <div class="profit">
+        ${locked ? t("deals__hidden_profit") : "💰 +€"+profit}
+        </div>
+
+        <div style="font-size:13px;color:#22C55E;">
+        ${t("deals__score",{score: d.score || "-"})}
+        </div>
+
+        <div style="margin-bottom:10px;">
+        📱 ${d.title ? d.title.substring(0,30) : t("deals__no_title")}
+        </div>
+
+        <div style="font-size:13px;color:#94A3B8;">
+        ${t("deals__sell_time",{time: d.sell_time || "2–4 days"})}
+        </div>
+
+        <div style="font-size:13px;color:#94A3B8;">
+        ${t("deals__risk",{risk: d.risk || "LOW"})}
+        </div>
+
+        <div style="margin-top:8px;font-size:12px;color:#F59E0B;">
+        ${locked 
+            ? t("deals__hidden_count",{count: deals.length - 1}) 
+            : t("deals__high")}
+        </div>
+
+        <a href="/pricing" class="btn ${locked ? "" : btnClass}">
+
+        ${locked ? t("deals__unlock_all") : t("deals__buy")}
+
+        <div style="font-size:12px;color:#94A3B8;margin-top:6px;">
+        ${locked ? t("deals__users_profit") : t("deals__act_fast")}
+        </div>
+
+        </a>
+        `
+
+        container.appendChild(div)
+
+    })
+
+}
+
+loadDeals()
+
+</script>
+
+{% endblock %}
+{% extends "base.html" %}
+{% block content %}
+
+<!-- 🚨 顶部转化提示 -->
+<div style="
+background:#111827;
+border:1px solid #22C55E;
+padding:20px;
+border-radius:12px;
+margin-bottom:20px;
+text-align:center;
+">
+
+<div style="font-size:14px;color:#F59E0B;" data-i18n="pricing__warning"></div>
+
+<div id="todayProfit" style="font-size:28px;font-weight:800;color:#22C55E;margin:10px 0;"></div>
+
+<div style="font-size:13px;color:#CBD5F5;" data-i18n="pricing__social_proof"></div>
+
+</div>
+
+<h1 data-i18n="pricing__title"></h1>
+
+<p data-i18n="pricing__subtitle"></p>
+
+<div class="pricing">
+
+<!-- FREE -->
+<div class="card">
+
+<h2 data-i18n="plan__free"></h2>
+
+<div id="price_free" style="font-size:32px;font-weight:bold;margin:10px 0"></div>
+
+<ul style="line-height:28px">
+<li data-i18n="pricing__market_feed"></li>
+<li data-i18n="pricing__basic_stats"></li>
+<li data-i18n="pricing__limited_deals"></li>
+</ul>
+
+<button disabled class="btn" data-i18n="pricing__current_plan"></button>
+
+</div>
+
+<!-- STARTER -->
+<div class="card">
+
+<h2 data-i18n="plan__starter"></h2>
+
+<div id="price_starter" style="font-size:32px;font-weight:bold;margin:10px 0"></div>
+
+<ul style="line-height:28px">
+<li data-i18n="pricing__deal_stream"></li>
+<li data-i18n="pricing__basic_models"></li>
+<li data-i18n="pricing__market_stats"></li>
+</ul>
+
+<button onclick="subscribe('starter')" class="btn" data-i18n="pricing__start_money"></button>
+
+<div style="font-size:12px;color:#94A3B8;margin-top:6px;" data-i18n="pricing__unlock"></div>
+
+</div>
+
+<!-- PRO -->
+<div class="card" style="border:2px solid #22C55E;">
+
+<div style="color:#22C55E;font-size:12px;margin-bottom:6px;" data-i18n="pricing__popular"></div>
+
+<h2 data-i18n="plan__pro"></h2>
+
+<div id="price_pro" style="font-size:32px;font-weight:bold;margin:10px 0"></div>
+
+<ul style="line-height:28px">
+<li data-i18n="pricing__deal_stream"></li>
+<li data-i18n="pricing__full_models"></li>
+<li data-i18n="pricing__price_trend"></li>
+<li data-i18n="pricing__advanced_arbitrage"></li>
+<li data-i18n="pricing__realtime_signals"></li>
+</ul>
+
+<button onclick="subscribe('pro')" class="btn" data-i18n="pricing__unlock_signals"></button>
+
+<div style="font-size:12px;color:#94A3B8;margin-top:6px;" data-i18n="pricing__access_profit"></div>
+
+</div>
+
+</div>
+
+<script>
+
+/* ===== 动态价格（变量型） ===== */
+
+function renderPricing(){
+
+document.getElementById("todayProfit").innerText = t("pricing__today_profit",{amount:120})
+
+document.getElementById("price_free").innerText = t("pricing__price",{price:0})
+
+document.getElementById("price_starter").innerText = t("pricing__price",{price:9.9})
+
+document.getElementById("price_pro").innerText = t("pricing__price",{price:19.9})
+
+}
+
+async function subscribe(plan){
+
+const res = await api("/api/create_checkout_session",{
+method:"POST",
+body:JSON.stringify({plan:plan})
+})
+
+if(res.url){
+window.location=res.url
+}
+
+}
+
+renderPricing()
+
+</script>
+
+{% endblock %}
+{% extends "base.html" %}
+{% block content %}
+
+<div class="box">
+
+<h2 data-i18n="login__title"></h2>
+
+<form id="loginForm">
+
+<input id="username" data-i18n-placeholder="login__username"><br><br>
+
+<input id="password" type="password" data-i18n-placeholder="login__password"><br><br>
+
+<button type="submit" data-i18n="login__cta"></button>
+
+</form>
+
+<script>
+
+/* ===== placeholder i18n 支持 ===== */
+function applyPlaceholders(){
+document.querySelectorAll("[data-i18n-placeholder]").forEach(el=>{
+    const key = el.dataset.i18nPlaceholder
+    el.placeholder = t(key)
+})
+}
+
+document.getElementById("loginForm").onsubmit = async function(e){
+
+e.preventDefault()
+
+let username = document.getElementById("username").value
+let password = document.getElementById("password").value
+
+let res = await fetch("/api/login",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({username,password})
+})
+
+let data = await res.json()
+
+if(data.access_token){
+localStorage.setItem("token",data.access_token)
+alert(t("login__success"))
+location.href="/"
+}else{
+alert(t("login__failed"))
+}
+
+}
+
+/* 等待全局语言加载后应用 placeholder */
+setTimeout(applyPlaceholders, 200)
+
+</script>
+
+</div>
+
+{% endblock %}
+{% extends "base.html" %}
+{% block content %}
+
+<h1 data-i18n="account__title"></h1>
+
+<div class="account-grid">
+
+<div class="card">
+
+<h2 data-i18n="account__profile"></h2>
+
+<div class="info">
+<b data-i18n="account__username"></b><br>{{username}}
+</div>
+
+<div class="info">
+<b data-i18n="account__customer_id"></b><br>{{customer}}
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h2 data-i18n="account__subscription"></h2>
+
+<div class="info">
+
+<b data-i18n="account__current_plan"></b><br>
+
+{% if membership == 0 %}
+<span class="badge free" data-i18n="plan__free"></span>
+{% elif membership == 1 %}
+<span class="badge starter" data-i18n="plan__starter"></span>
+{% else %}
+<span class="badge pro" data-i18n="plan__pro"></span>
+{% endif %}
+
+</div>
+
+<div style="margin-top:15px">
+
+<a href="/pricing" class="btn" data-i18n="account__upgrade"></a>
+
+<button onclick="cancelSubscription()" class="btn-danger" data-i18n="account__cancel"></button>
+
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h2 data-i18n="account__usage"></h2>
+
+<div class="info">
+<span data-i18n="account__deals_viewed"></span>: 
+<b id="deals"></b>
+</div>
+
+<div class="info">
+<span data-i18n="account__api_requests"></span>: 
+<b id="api"></b>
+</div>
+
+</div>
+
+</div>
+
+
+<script>
+
+async function cancelSubscription(){
+
+if(!confirm(t("account__cancel_confirm"))) return
+
+const res = await api("/api/cancel_subscription",{method:"POST"})
+
+alert(res.message || t("account__cancel_done"))
+
+location.reload()
+
+}
+
+async function loadUsage(){
+
+const data = await api("/api/usage")
+
+document.getElementById("deals").innerText = data.deals || 0
+document.getElementById("api").innerText = data.api || 0
+
+}
+
+loadUsage()
+
+</script>
+
+{% endblock %}
+{% extends "base.html" %}
+{% block content %}
+
+<div class="section">
+<h1 data-i18n="market__title"></h1>
+</div>
+
+<div class="section">
+<h2 data-i18n="market__top_models"></h2>
+<div id="models"></div>
+</div>
+
+<div class="section">
+<h2 data-i18n="market__price_trends"></h2>
+<canvas id="trendChart" height="120"></canvas>
+</div>
+
+<div class="section">
+<h2 data-i18n="market__arbitrage"></h2>
+<div id="arbitrage"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+/* ===== MODELS ===== */
+async function loadModels(){
+
+    const res = await fetch("/api/top_models",{
+        headers:{
+            "Authorization":"Bearer " + localStorage.getItem("token")
+        }
+    })
+
+    const data = await res.json()
+
+    const container = document.getElementById("models")
+    container.innerHTML = ""
+
+    data.slice(0,6).forEach(m=>{
+
+        container.innerHTML += `
+        <div class="card" style="margin-bottom:10px;">
+            <div><b>${m.model}</b></div>
+            <div>${t("market__price",{price: m.median_price || "-"})}</div>
+        </div>
+        `
+    })
+
+}
+
+/* ===== TREND ===== */
+async function loadTrend(){
+
+    const res = await fetch("/api/price_trend?model=iphone&period=30D")
+    const data = await res.json()
+
+    if(!data || data.length === 0) return
+
+    const prices = []
+    const labels = []
+
+    data.forEach(p=>{
+        prices.push(p.price)
+
+        const d = new Date(p.time * 1000)
+        labels.push(d.getDate()+"/"+(d.getMonth()+1))
+    })
+
+    const ctx = document.getElementById("trendChart").getContext("2d")
+
+    new Chart(ctx,{
+        type:"line",
+        data:{
+            labels:labels,
+            datasets:[{
+                label: t("market__price_chart"),
+                data:prices,
+                borderColor:"#22C55E",
+                backgroundColor:"rgba(34,197,94,0.15)",
+                borderWidth:2,
+                tension:0.4,
+                pointRadius:0,
+                fill:true
+            }]
+        },
+        options:{
+            responsive:true,
+            plugins:{
+                legend:{display:false}
+            },
+            scales:{
+                y:{
+                    beginAtZero:false,
+                    ticks:{
+                        callback:value=>"€"+value
+                    },
+                    grid:{
+                        color:"rgba(255,255,255,0.05)"
+                    }
+                },
+                x:{
+                    grid:{
+                        display:false
+                    }
+                }
+            }
+        }
+    })
+
+}
+
+window.addEventListener("DOMContentLoaded", async () => {
+
+    // 等语言加载完成
+    await loadLang()
+
+    // 再执行
+    loadModels()
+    loadTrend()
+
+})
+
+</script>
+
+{% endblock %}
+{% extends "base.html" %}
+{% block content %}
+
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+
+<title data-i18n="dealradar_live_feed">DealRadar Live Feed</title>
+
+
+</head>
+
+<body>
+
+
+
+<h1 data-i18n="dealradar_live_arbitrage_feed">DealRadar Live Arbitrage Feed</h1>
+
+<div class="feed" id="feed"></div>
+
+<script>
+
+async function loadFeed(){
+
+let res = await fetch("/api/feed",{
+headers:{
+"Authorization":"Bearer " + localStorage.getItem("token")
+}
+})
+
+let data = await res.json()
+
+let html = ""
+
+data.forEach(d=>{
+
+html += `
+<div class="deal">
+
+<div data-i18n="dtitle">${d.title}</div>
+
+<div class="price" data-i18n="price_dprice">Price: €${d.price}</div>
+
+<div data-i18n="market_dmarketprice">Market: €${d.market_price}</div>
+
+<div class="profit" data-i18n="profit_dprofit">Profit: €${d.profit}</div>
+
+<a href="${d.url}" target="_blank" data-i18n="open_deal">OPEN DEAL</a>
+
+</div>
+`
+
+})
+
+document.getElementById("feed").innerHTML = html
+
+}
+
+loadFeed()
+
+setInterval(loadFeed,5000)
+
+</script>
+
+
+{% endblock %}
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+
+.page-header{
+margin-bottom:30px;
+}
+
+.page-header h1{
+margin-bottom:5px;
+}
+
+.page-header p{
+color:#666;
+}
+
+/* filter */
+
+.filters{
+margin-bottom:25px;
+}
+
+.filter-btn{
+background:#eee;
+border:none;
+padding:8px 14px;
+margin-right:10px;
+border-radius:6px;
+cursor:pointer;
+font-size:14px;
+}
+
+.filter-btn:hover{
+background:#ddd;
+}
+
+/* deals grid */
+
+.deals-grid{
+display:grid;
+grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+gap:20px;
+}
+
+/* card */
+
+.card{
+background:white;
+padding:20px;
+border-radius:10px;
+box-shadow:0 2px 8px rgba(0,0,0,0.08);
+}
+
+.card:hover{
+transform:translateY(-2px);
+box-shadow:0 4px 12px rgba(0,0,0,0.12);
+}
+
+/* title */
+
+.title{
+font-weight:bold;
+font-size:16px;
+margin-bottom:10px;
+}
+
+/* numbers */
+
+.meta{
+font-size:14px;
+line-height:1.7;
+}
+
+.price{
+color:#333;
+}
+
+.market{
+color:#666;
+}
+
+.profit{
+color:#4CAF50;
+font-weight:bold;
+}
+
+.score{
+color:#888;
+font-size:13px;
+}
+
+/* deal button */
+
+.deal-btn{
+display:inline-block;
+margin-top:12px;
+background:#4CAF50;
+color:white;
+padding:8px 14px;
+border-radius:6px;
+text-decoration:none;
+font-size:13px;
+}
+
+.deal-btn:hover{
+opacity:0.9;
+}
+
+</style>
+
+
+<div class="container">
+
+<div class="page-header">
+
+<h1 data-i18n="_top_opportunities">🔥 Top Opportunities</h1>
+
+<p data-i18n="best_underpriced_electronics_across_euro">Best underpriced electronics across European marketplaces.</p>
+
+</div>
+
+
+<div class="filters">
+
+<button class="filter-btn" data-i18n="all">All</button>
+<button class="filter-btn">Profit > €50</button>
+<button class="filter-btn">Profit > €100</button>
+
+</div>
+
+
+<div id="deals" class="deals-grid"></div>
+
+</div>
+
+
+<script>
+
+fetch("/api/opportunities",{
+headers:{
+"Authorization":"Bearer " + localStorage.getItem("token")
+}
+})
+.then(r=>r.json())
+.then(data=>{
+
+let html=""
+
+data.forEach(d=>{
+
+html+=`
+<div class="card">
+
+<div class="title" data-i18n="dtitle">${d.title}</div>
+
+<div class="meta">
+
+<span class="price" data-i18n="price_dprice">Price: €${d.price}</span><br>
+<span class="market" data-i18n="market_dmarketprice">Market: €${d.market_price}</span><br>
+<span class="profit" data-i18n="profit_dprofit">Profit: €${d.profit}</span><br>
+<span class="score" data-i18n="score_dscore">Score: ${d.score}</span>
+
+</div>
+
+</div>
+`
+})
+
+document.getElementById("deals").innerHTML=html
+
+})
+
+</script>
+
+{% endblock %}
+{% extends "base.html" %}
+{% block content %}
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title data-i18n="market__dealradar">Market - DealRadar</title>
+</head>
+
+<body>
+
+
+<div class="container">
+
+<h1 data-i18n="market_statistics">Market Statistics</h1>
+
+<div class="card">
+Total Listings: <span id="total"></span>
+</div>
+
+<div class="card">
+Active Listings: <span id="active"></span>
+</div>
+
+<div class="card">
+Models: <span id="models"></span>
+</div>
+
+</div>
+
+<script>
+
+async function loadStats(){
+
+const res = await fetch("/api/market_stats",{
+headers:{
+"Authorization":"Bearer " + localStorage.getItem("token")
+}
+})
+const data = await res.json()
+
+document.getElementById("total").innerText=data.total_listings
+document.getElementById("active").innerText=data.active_listings
+document.getElementById("models").innerText=data.models
+
+}
+
+loadStats()
+
+</script>
+
+{% endblock %}
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container">
+
+<h1 data-i18n="arbitrage_terminal">Arbitrage Terminal</h1>
+
+
+<div id="alertBox" class="alert"></div>
+
+
+<div class="feed">
+
+<h2 data-i18n="_live_arbitrage_feed">🟢 Live Arbitrage Feed</h2>
+
+<div id="liveFeed"></div>
+
+</div>
+
+
+<div class="controls">
+
+<div>
+<label data-i18n="minimum_profit">Minimum Profit:</label>
+
+<select id="profitFilter">
+<option value="0" data-i18n="all">All</option>
+<option value="10" data-i18n="10">10€</option>
+<option value="20" data-i18n="20">20€</option>
+<option value="50" data-i18n="50">50€</option>
+<option value="100" data-i18n="100">100€</option>
+<option value="200" data-i18n="200">200€</option>
+</select>
+</div>
+
+
+<div>
+<label data-i18n="sort_by">Sort by:</label>
+
+<select id="sortFilter">
+<option value="profit" data-i18n="profit" data-i18n="profit">Profit</option>
+<option value="score" selected data-i18n="score" data-i18n="score">Score</option>
+<option value="price" data-i18n="price" data-i18n="price">Price</option>
+</select>
+</div>
+
+</div>
+
+
+<table>
+
+<thead>
+
+<tr>
+<th data-i18n="title">Title</th>
+<th data-i18n="model">Model</th>
+<th data-i18n="price" data-i18n="price">Price</th>
+<th data-i18n="market_price">Market Price</th>
+<th data-i18n="profit" data-i18n="profit">Profit</th>
+<th data-i18n="strength">Strength</th>
+<th data-i18n="score" data-i18n="score">Score</th>
+<th data-i18n="level">Level</th>
+</tr>
+
+</thead>
+
+<tbody id="table"></tbody>
+
+</table>
+
+</div>
+
+
+<script>
+
+const profitFilter=document.getElementById("profitFilter")
+const sortFilter=document.getElementById("sortFilter")
+
+sortFilter.value="score"
+
+let lastTopDeal=null
+
+profitFilter.addEventListener("change",loadDeals)
+sortFilter.addEventListener("change",loadDeals)
+
+
+function levelClass(level){
+
+if(level.includes("S")) return "levelS"
+if(level.includes("A")) return "levelA"
+
+return "levelB"
+
+}
+
+
+function strengthBar(profit){
+
+let bars=1
+
+if(profit>150) bars=5
+else if(profit>100) bars=4
+else if(profit>60) bars=3
+else if(profit data-i18n="30_bars2let_html">30) bars=2
+
+let html=`<div class="strengthBar" data-i18n="forlet_i0i">`
+
+for(let i=0;i<bars;i++){
+html+=`<div class="bar"></div data-i18n="html">`
+}
+
+html+=`</div>`
+
+return html
+
+}
+
+
+function sortDeals(data,mode){
+
+if(mode==="profit"){
+data.sort((a,b)=>b.profit-a.profit)
+}
+
+if(mode==="score"){
+data.sort((a,b)=>b.score-a.score)
+}
+
+if(mode==="price"){
+data.sort((a,b)=>a.price-b.price)
+}
+
+return data
+
+}
+
+
+async function checkNewDeal(){
+
+const res = await fetch("/api/arbitrage?profit=" + profit,{
+headers:{
+"Authorization":"Bearer " + localStorage.getItem("token")
+}
+})
+
+const data=await res.json()
+
+if(!data.length) return
+
+let top=data[0]
+
+if(lastTopDeal!==top.title){
+
+lastTopDeal=top.title
+
+const alert=document.getElementById("alertBox")
+
+alert.style.display="block"
+
+alert.innerHTML=`🚨 NEW DEAL DETECTED — ${top.title} Profit ${top.profit}€`
+
+setTimeout(()=>{
+alert.style.display="none"
+},6000)
+
+loadDeals()
+
+}
+
+}
+
+
+async function loadFeed(){
+
+const res = await fetch("/api/arbitrage",{
+headers:{
+"Authorization":"Bearer " + localStorage.getItem("token")
+}
+})
+
+const data=await res.json()
+
+const feed=document.getElementById("liveFeed")
+
+feed.innerHTML=""
+
+data.slice(0,5).forEach(d=>{
+
+feed.innerHTML+=`
+<div class="feedItem">
+🟢 ${d.title} — Profit ${d.profit}€
+</div>
+`
+
+})
+
+}
+
+
+async function loadDeals(){
+
+const profit=profitFilter.value
+const sortMode=sortFilter.value
+
+const res = await fetch("/api/arbitrage?profit=" + profit,{
+headers:{
+"Authorization":"Bearer " + localStorage.getItem("token")
+}
+})
+
+let data=await res.json()
+
+data=sortDeals(data,sortMode)
+
+const table=document.getElementById("table")
+
+table.innerHTML=""
+
+data.forEach(d= data-i18n="let_titleifdurltitle">{
+
+let title
+
+if(d.url){
+title=`<a href="${d.url}" target="_blank" data-i18n="dtitle">${d.title}</a>`
+}else{
+title=d.title
+}
+
+let levelStyle=levelClass(d.level)
+
+let strength=strengthBar(d.profit)
+
+let row=`
+<tr ${d.title===lastTopDeal ? 'class="newDeal"' : ''}>
+<td data-i18n="title">${title}</td>
+<td data-i18n="dmodel">${d.model}</td>
+<td data-i18n="dprice">${d.price}</td>
+<td data-i18n="dmarketprice">${d.market_price}</td>
+<td data-i18n="dprofit">${d.profit}</td>
+<td data-i18n="strength">${strength}</td>
+<td data-i18n="dscore">${d.score}</td>
+<td class="${levelStyle}" data-i18n="dlevel">${d.level}</td>
+</tr>
+`
+
+table.innerHTML+=row
+
+})
+
+}
+
+loadDeals()
+loadFeed()
+checkNewDeal()
+
+setInterval(loadFeed,10000)
+setInterval(checkNewDeal,10000)
+setInterval(loadDeals,10000)
+
+</script>
+
+
+
+{% endblock %}
+{% extends "base.html" %}
+{% block content %}
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title data-i18n="payment_success">Payment Success</title>
+
+
+</head>
+
+<body>
+
+<div class="card">
+
+<h1 data-i18n="payment_successful">Payment Successful</h1>
+
+<p data-i18n="your_dealradar_pro_subscription_is_activ">Your DealRadar Pro subscription is active.</p>
+
+<a href="/" data-i18n="go_to_dashboard">Go to Dashboard</a>
+
+</div>
+
+{% endblock %}
+{% extends "base.html" %}
+{% block content %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<h1 data-i18n="models_dashboard">Models Dashboard</h1>
+
+<div class="card">
+
+<h2 data-i18n="model_ranking">Model Ranking</h2>
+
+<table style="width:100%;margin-top:10px">
+
+<thead>
+<tr>
+<th data-i18n="model">Model</th>
+<th data-i18n="average_price">Average Price</th>
+<th data-i18n="velocity">Velocity</th>
+<th data-i18n="volatility">Volatility</th>
+<th data-i18n="demand">Demand</th>
+<th data-i18n="arbitrage">Arbitrage</th>
+</tr>
+</thead>
+
+<tbody id="table">
+</tbody>
+
+</table>
+
+</div>
+
+<div class="card">
+
+<h2 data-i18n="price_trend_last_7_days">Price Trend (Last 7 Days)</h2>
+
+<div class="rangeButtons">
+
+<button onclick="setRange('7d')">7D</button>
+
+</div>
+
+<div id="trendTitle" data-i18n="select_a_model">Select a model</div>
+
+<canvas id="trendChart" height="120"></canvas>
+
+</div>
+
+<script>
+
+let chart=null
+
+let currentRange="7d"
+let currentModel=null
+
+function setRange(r){
+
+currentRange=r
+
+if(currentModel){
+loadTrend(currentModel)
+}
+
+}
+
+async function loadModels(){
+
+const res = await fetch("/api/top_models",{
+headers:{
+"Authorization":"Bearer " + localStorage.getItem("token")
+}
+})
+
+const data = await res.json()
+
+const table=document.getElementById("table")
+
+table.innerHTML=""
+
+data.forEach(m=>{
+
+let velocity="Low"
+
+if(m.velocity>=0.85){
+velocity="High"
+}
+else if(m.velocity>=0.6){
+velocity="Medium"
+}
+
+let demand=demandFire(m.demand_score)
+
+let vol=volatilityIcon(m.volatility)
+
+let row=`
+
+<tr onclick="loadTrend('${m.model}')">
+
+<td data-i18n="mmodel">${m.model}</td>
+
+<td data-i18n="mmedianprice___">${m.median_price ?? "-"} €</td>
+
+<td data-i18n="velocity">${velocity}</td>
+
+<td class="vol" data-i18n="vol">${vol}</td>
+
+<td class="fire" data-i18n="demand">${demand}</td>
+
+<td class="score" data-i18n="marbitragescore">${m.arbitrage_score}</td>
+
+</tr>
+
+`
+
+table.innerHTML+=row
+
+})
+
+}
+
+
+function demandFire(score){
+
+if(score>=120){
+return "🔥🔥🔥🔥🔥"
+}
+else if(score>=100){
+return "🔥🔥🔥🔥"
+}
+else if(score>=80){
+return "🔥🔥🔥"
+}
+else if(score>=60){
+return "🔥🔥"
+}
+else{
+return "🔥"
+}
+
+}
+
+
+function volatilityIcon(v){
+
+if(v>=1.8){
+return "🌪🌪🌪🌪🌪"
+}
+else if(v>=1.5){
+return "🌪🌪🌪🌪"
+}
+else if(v>=1.2){
+return "🌪🌪🌪"
+}
+else if(v>=1.0){
+return "🌪🌪"
+}
+else{
+return "🌪"
+}
+
+}
+
+
+async function loadTrend(model){
+
+currentModel = model
+
+document.getElementById("trendTitle").innerText="Price Trend: "+model
+
+const res = await fetch("/api/price_trend?model="+model+"&period=7D",{
+headers:{
+"Authorization":"Bearer " + localStorage.getItem("token")
+}
+})
+const data = await res.json()
+
+const prices=[]
+const labels=[]
+
+data.slice(0,30).reverse().forEach(p=>{
+
+prices.push(p.price)
+
+let t = new Date(p.time*1000)
+
+labels.push(["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][t.getDay()])
+
+})
+
+const ctx=document.getElementById("trendChart").getContext("2d")
+
+const gradient = ctx.createLinearGradient(0,0,0,300)
+
+gradient.addColorStop(0,"rgba(46,204,113,0.4)")
+gradient.addColorStop(1,"rgba(46,204,113,0.02)")
+
+if(chart){
+chart.destroy()
+}
+
+chart=new Chart(ctx,{
+type:"line",
+data:{
+labels:labels,
+datasets:[{
+label:model+" Price",
+data:prices,
+borderColor:"#2ecc71",
+backgroundColor:gradient,
+borderWidth:3,
+tension:0.45,
+pointRadius:0,
+fill:true
+}]
+},
+options:{
+responsive:true,
+plugins:{
+legend:{display:false}
+},
+scales:{
+y:{
+beginAtZero:false,
+ticks:{
+callback:value=>"€"+value
+},
+grid:{
+color:"rgba(255,255,255,0.05)"
+}
+},
+x:{
+grid:{
+display:false
+}
+}
+}
+}
+})
+
+}
+
+loadModels()
+
+</script>
+
+{% endblock %}

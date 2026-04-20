@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+
+<title data-i18n="dealradar_live_feed">DealRadar Live Feed</title>
+
+
+</head>
+
+<body>
+
+
+
+<h1 data-i18n="dealradar_live_arbitrage_feed">DealRadar Live Arbitrage Feed</h1>
+
+<div class="feed" id="feed"></div>
+
+<script>
+
+async function loadFeed(){
+
+let res = await fetch("/api/feed",{
+headers:{
+"Authorization":"Bearer " + localStorage.getItem("token")
+}
+})
+
+let data = await res.json()
+
+let html = ""
+
+data.forEach(d=>{
+
+html += `
+<div class="deal">
+
+<div data-i18n="dtitle">${d.title}</div>
+
+<div class="price" data-i18n="price_dprice">Price: €${d.price}</div>
+
+<div data-i18n="market_dmarketprice">Market: €${d.market_price}</div>
+
+<div class="profit" data-i18n="profit_dprofit">Profit: €${d.profit}</div>
+
+<a href="${d.url}" target="_blank" data-i18n="open_deal">OPEN DEAL</a>
+
+</div>
+`
+
+})
+
+document.getElementById("feed").innerHTML = html
+
+}
+
+loadFeed()
+
+setInterval(loadFeed,5000)
+
+</script>
+
+
+{% endblock %}

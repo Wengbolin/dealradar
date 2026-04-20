@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1 data-i18n="account__title"></h1>
+
+<!-- TOP -->
+<div class="account-grid top">
+
+<div class="card">
+<h2 data-i18n="account__overview"></h2>
+<hr>
+
+<div class="info">
+<b data-i18n="account__today_opportunities"></b>
+</div>
+
+<div id="todayProfit" class="big-number green">€0</div>
+
+<div class="sub" data-i18n="account__today_desc"></div>
+</div>
+
+
+<div class="card">
+<h2 data-i18n="account__missed_title"></h2>
+<hr>
+
+<div class="info" data-i18n="account__missed_desc"></div>
+
+<div id="missedProfit" class="big-number">€0</div>
+
+<div class="sub" data-i18n="account__missed_sub"></div>
+</div>
+
+</div>
+
+
+<!-- MIDDLE -->
+<div class="account-grid middle">
+
+<div class="card highlight">
+
+<h2 data-i18n="account__subscription"></h2>
+<hr>
+
+<div class="info">
+<b data-i18n="account__current_plan"></b><br>
+
+<span id="planBadge" class="badge"></span>
+<div id="planDesc" class="sub"></div>
+
+</div>
+
+<div style="margin-top:18px">
+
+<a href="/pricing" class="btn primary" data-i18n="account__upgrade"></a>
+
+<button class="btn-link" onclick="openBillingPortal()">
+<span>Manage Subscription</span>
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- BOTTOM -->
+<div class="account-grid bottom">
+
+<div class="card">
+<h2 data-i18n="account__usage"></h2>
+<hr>
+
+<div class="info">
+<span data-i18n="account__deals_viewed_today"></span>: 
+<b id="deals_today">0</b>
+</div>
+
+<div class="info" style="margin-top:10px;">
+<span data-i18n="account__api_requests"></span>: 
+<b id="api">0</b>
+</div>
+
+</div>
+
+
+<div class="card small">
+<h2 data-i18n="account__profile"></h2>
+<hr>
+
+<div class="info">
+<b data-i18n="account__username"></b><br>
+<span id="username"></span>
+</div>
+
+<div class="info">
+<b data-i18n="account__customer_id"></b><br>
+<span id="customer"></span>
+</div>
+
+</div>
+
+</div>
+
+
+<style>
+.account-grid {
+display: grid;
+gap: 20px;
+margin-top: 20px;
+}
+.account-grid.top,
+.account-grid.bottom {
+grid-template-columns: repeat(2, 1fr);
+}
+.account-grid.middle {
+grid-template-columns: 1fr;
+}
+.card {
+background: #0f172a;
+padding: 20px;
+border-radius: 12px;
+border: 1px solid rgba(255,255,255,0.05);
+}
+.card.highlight {
+border: 1px solid rgba(34,197,94,0.4);
+}
+hr {
+border: none;
+border-top: 1px solid rgba(255,255,255,0.1);
+margin: 10px 0 15px;
+}
+.big-number {
+font-size: 30px;
+font-weight: 800;
+margin-top: 8px;
+}
+.green {
+color: #22C55E;
+}
+.sub {
+font-size: 13px;
+color: #888;
+margin-top: 6px;
+}
+.btn.primary {
+background: #22C55E;
+color: #000;
+padding: 10px 16px;
+border-radius: 8px;
+font-weight: 600;
+text-decoration: none;
+}
+.btn-link {
+background: none;
+border: none;
+color: #888;
+font-size: 12px;
+margin-top: 10px;
+cursor: pointer;
+}
+</style>
+
+
+<script>
+// ✅ 自动刷新token（关键）
+async function refreshUser(){
+
+    const res = await fetch("/api/account",{
+        headers:{
+            "Authorization":"Bearer " + localStorage.getItem("token")
+        }
+    })
+
+    const data = await res.json()
+
+    if(data.plan !== undefined){
+        console.log("用户状态已刷新:", data.plan)
+    }
+}
+
+
+// ✅ 所有数据统一从后端拿
+async function loadAccountData(){
+
+    const res = await fetch("/api/account", {
+        headers: {
+            "Authorization": "Bearer " + localStorage.getItem("token")
+        }
+    })
+
+    const data = await res.json()
+
+    if(data.status === "error"){
+        alert("Not logged in")
+        return
+    }
+
+    document.getElementById("todayProfit").innerText = "€" + (data.today_profit || 0)
+    document.getElementById("missedProfit").innerText = "€" + (data.missed_profit || 0)
+
+    document.getElementById("deals_today").innerText = data.deals_today || 0
+    document.getElementById("api").innerText = data.api_requests || 0
+
+    document.getElementById("username").innerText = data.username || "-"
+    document.getElementById("customer").innerText = data.customer_id || "-"
+
+    // 👇👇👇 就加在这里 👇👇👇
+    const plan = data.plan || 0
+
+    const badge = document.getElementById("planBadge")
+    const desc = document.getElementById("planDesc")
+
+    if(plan === 0){
+        badge.className = "badge free"
+        badge.innerText = "Free"
+        desc.innerText = "Limited access"
+
+    }else if(plan === 1){
+        badge.className = "badge starter"
+        badge.innerText = "Starter"
+        desc.innerText = "Basic access unlocked"
+
+    }else{
+        badge.className = "badge pro"
+        badge.innerText = "Pro"
+        desc.innerText = "Full access unlocked"
+    }
+
+}
+
+// ❗取消订阅保留
+async function cancelSubscription(){
+
+if(!confirm(t("account__cancel_confirm"))) return
+
+const res = await api("/api/cancel_subscription",{method:"POST"})
+
+alert(res.message || t("account__cancel_done"))
+
+location.reload()
+
+}
+
+async function openBillingPortal(){
+
+    const res = await api("/api/create_portal_session",{
+        method:"POST"
+    })
+
+    if(res.url){
+        window.location = res.url
+    }else{
+        alert("无法打开订阅管理")
+    }
+}
+
+(async () => {
+    await refreshUser()
+    loadAccountData()
+})()
+
+</script>
+
+{% endblock %}

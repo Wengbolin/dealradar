@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title data-i18n="market__dealradar">Market - DealRadar</title>
+</head>
+
+<body>
+
+
+<div class="container">
+
+<h1 data-i18n="market_statistics">Market Statistics</h1>
+
+<div class="card">
+Total Listings: <span id="total"></span>
+</div>
+
+<div class="card">
+Active Listings: <span id="active"></span>
+</div>
+
+<div class="card">
+Models: <span id="models"></span>
+</div>
+
+</div>
+
+<script>
+
+async function loadStats(){
+
+const res = await fetch("/api/market_stats",{
+headers:{
+"Authorization":"Bearer " + localStorage.getItem("token")
+}
+})
+const data = await res.json()
+
+document.getElementById("total").innerText=data.total_listings
+document.getElementById("active").innerText=data.active_listings
+document.getElementById("models").innerText=data.models
+
+}
+
+loadStats()
+
+</script>
+
+{% endblock %}

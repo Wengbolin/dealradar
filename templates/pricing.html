@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1 data-i18n="pricing__title"></h1>
+<p data-i18n="pricing__subtitle"></p>
+
+<div class="pricing">
+
+<!-- FREE -->
+<div class="card">
+<h2 data-i18n="plan__free"></h2>
+<div id="price_free" class="price"></div>
+
+<ul>
+<li data-i18n="pricing__free_1"></li>
+<li data-i18n="pricing__free_2"></li>
+<li data-i18n="pricing__free_3"></li>
+<li data-i18n="pricing__free_4"></li>
+<li data-i18n="pricing__free_5"></li>
+</ul>
+
+<button disabled class="btn" data-i18n="pricing__btn_free"></button>
+</div>
+
+<!-- STARTER -->
+<div class="card">
+<h2 data-i18n="plan__starter"></h2>
+<div id="price_starter" class="price"></div>
+
+<ul>
+<li data-i18n="pricing__starter_1"></li>
+<li data-i18n="pricing__starter_2"></li>
+<li data-i18n="pricing__starter_3"></li>
+<li data-i18n="pricing__starter_4"></li>
+<li data-i18n="pricing__starter_5"></li>
+</ul>
+
+<button onclick="subscribe('starter')" class="btn" data-i18n="pricing__btn_starter"></button>
+
+<div class="hint" data-i18n="pricing__unlock"></div>
+</div>
+
+<!-- PRO -->
+<div class="card pro">
+
+<div class="badge" data-i18n="pricing__popular"></div>
+
+<h2 data-i18n="plan__pro"></h2>
+<div id="price_pro" class="price"></div>
+<div style="font-size:13px;color:#22C55E;margin-bottom:10px;"
+     data-i18n="pricing__pro_tagline">
+</div>
+
+<ul>
+<li data-i18n="pricing__pro_1"></li>
+<li data-i18n="pricing__pro_2"></li>
+<li data-i18n="pricing__pro_3"></li>
+<li data-i18n="pricing__pro_4"></li>
+<li data-i18n="pricing__pro_5"></li>
+</ul>
+
+<button onclick="subscribe('pro')" class="btn" data-i18n="pricing__btn_pro"></button>
+
+<div class="hint" data-i18n="pricing__access_profit"></div>
+
+</div>
+
+</div>
+
+<script>
+
+
+/* =========================
+   ✅ 价格格式（本地化）
+========================= */
+function formatPrice(price){
+    return new Intl.NumberFormat(navigator.language || 'it-IT',{
+        style:'currency',
+        currency:'EUR'
+    }).format(price)
+}
+
+/* =========================
+   ✅ 用户解析
+========================= */
+function getUser(){
+    const token = localStorage.getItem("token")
+    if(!token) return null
+
+    try{
+        return JSON.parse(atob(token.split('.')[1]))
+    }catch(e){
+        return null
+    }
+}
+
+/* =========================
+   ✅ 动态渲染
+========================= */
+function renderPricing(){
+
+    const user = getUser()
+
+    const freeEl = document.getElementById("price_free")
+    const starterEl = document.getElementById("price_starter")
+    const proEl = document.getElementById("price_pro")
+
+    if(freeEl){
+        freeEl.innerText = t("pricing__price",{price: formatPrice(0)})
+    }
+
+    if(starterEl){
+        starterEl.innerText = t("pricing__price",{price: formatPrice(9.9)})
+    }
+
+    if(proEl){
+        proEl.innerText = t("pricing__price",{price: formatPrice(19.9)})
+    }
+
+    if(user && user.plan >= 2){
+        document.querySelectorAll(".btn").forEach(btn=>{
+            btn.innerText = t("pricing__unlocked")
+            btn.disabled = true
+        })
+    }
+}
+
+
+/* =========================
+   ✅ 支付
+========================= */
+async function subscribe(plan){
+
+    const res = await api("/api/create_checkout_session",{
+        method:"POST",
+        body:JSON.stringify({plan})
+    })
+
+    if(res.url){
+        window.location = res.url
+    }
+}
+
+window.addEventListener("load", () => {
+
+    const check = setInterval(() => {
+
+        if(typeof dict !== "undefined" && Object.keys(dict).length > 0){
+
+            clearInterval(check)
+            renderPricing()
+
+        }
+
+    }, 50)
+
+})
+
+
+</script>
+
+<style>
+.price{
+    font-size:32px;
+    font-weight:bold;
+    margin:10px 0;
+}
+
+.hint{
+    font-size:12px;
+    color:#94A3B8;
+    margin-top:6px;
+}
+
+.pro{
+    border:2px solid #22C55E;
+}
+
+.badge{
+    color:#22C55E;
+    font-size:12px;
+    margin-bottom:6px;
+}
+</style>
+
+{% endblock %}

@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+{% block content %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<h1 data-i18n="models_dashboard">Models Dashboard</h1>
+
+<div class="card">
+
+<h2 data-i18n="model_ranking">Model Ranking</h2>
+
+<table style="width:100%;margin-top:10px">
+
+<thead>
+<tr>
+<th data-i18n="model">Model</th>
+<th data-i18n="average_price">Average Price</th>
+<th data-i18n="velocity">Velocity</th>
+<th data-i18n="volatility">Volatility</th>
+<th data-i18n="demand">Demand</th>
+<th data-i18n="arbitrage">Arbitrage</th>
+</tr>
+</thead>
+
+<tbody id="table">
+</tbody>
+
+</table>
+
+</div>
+
+<div class="card">
+
+<h2 data-i18n="price_trend_last_7_days">Price Trend (Last 7 Days)</h2>
+
+<div class="rangeButtons">
+
+<button onclick="setRange('7d')">7D</button>
+
+</div>
+
+<div id="trendTitle" data-i18n="select_a_model">Select a model</div>
+
+<canvas id="trendChart" height="120"></canvas>
+
+</div>
+
+<script>
+
+let chart=null
+
+let currentRange="7d"
+let currentModel=null
+
+function setRange(r){
+
+currentRange=r
+
+if(currentModel){
+loadTrend(currentModel)
+}
+
+}
+
+async function loadModels(){
+
+const res = await fetch("/api/top_models",{
+headers:{
+"Authorization":"Bearer " + localStorage.getItem("token")
+}
+})
+
+const data = await res.json()
+
+const table=document.getElementById("table")
+
+table.innerHTML=""
+
+data.forEach(m=>{
+
+let velocity="Low"
+
+if(m.velocity>=0.85){
+velocity="High"
+}
+else if(m.velocity>=0.6){
+velocity="Medium"
+}
+
+let demand=demandFire(m.demand_score)
+
+let vol=volatilityIcon(m.volatility)
+
+let row=`
+
+<tr onclick="loadTrend('${m.model}')">
+
+<td data-i18n="mmodel">${m.model}</td>
+
+<td data-i18n="mmedianprice___">${m.median_price ?? "-"} €</td>
+
+<td data-i18n="velocity">${velocity}</td>
+
+<td class="vol" data-i18n="vol">${vol}</td>
+
+<td class="fire" data-i18n="demand">${demand}</td>
+
+<td class="score" data-i18n="marbitragescore">${m.arbitrage_score}</td>
+
+</tr>
+
+`
+
+table.innerHTML+=row
+
+})
+
+}
+
+
+function demandFire(score){
+
+if(score>=120){
+return "🔥🔥🔥🔥🔥"
+}
+else if(score>=100){
+return "🔥🔥🔥🔥"
+}
+else if(score>=80){
+return "🔥🔥🔥"
+}
+else if(score>=60){
+return "🔥🔥"
+}
+else{
+return "🔥"
+}
+
+}
+
+
+function volatilityIcon(v){
+
+if(v>=1.8){
+return "🌪🌪🌪🌪🌪"
+}
+else if(v>=1.5){
+return "🌪🌪🌪🌪"
+}
+else if(v>=1.2){
+return "🌪🌪🌪"
+}
+else if(v>=1.0){
+return "🌪🌪"
+}
+else{
+return "🌪"
+}
+
+}
+
+
+async function loadTrend(model){
+
+currentModel = model
+
+document.getElementById("trendTitle").innerText="Price Trend: "+model
+
+const res = await fetch("/api/price_trend?model="+model+"&period=7D",{
+headers:{
+"Authorization":"Bearer " + localStorage.getItem("token")
+}
+})
+const data = await res.json()
+
+const prices=[]
+const labels=[]
+
+data.slice(0,30).reverse().forEach(p=>{
+
+prices.push(p.price)
+
+let t = new Date(p.time*1000)
+
+labels.push(["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][t.getDay()])
+
+})
+
+const ctx=document.getElementById("trendChart").getContext("2d")
+
+const gradient = ctx.createLinearGradient(0,0,0,300)
+
+gradient.addColorStop(0,"rgba(46,204,113,0.4)")
+gradient.addColorStop(1,"rgba(46,204,113,0.02)")
+
+if(chart){
+chart.destroy()
+}
+
+chart=new Chart(ctx,{
+type:"line",
+data:{
+labels:labels,
+datasets:[{
+label:model+" Price",
+data:prices,
+borderColor:"#2ecc71",
+backgroundColor:gradient,
+borderWidth:3,
+tension:0.45,
+pointRadius:0,
+fill:true
+}]
+},
+options:{
+responsive:true,
+plugins:{
+legend:{display:false}
+},
+scales:{
+y:{
+beginAtZero:false,
+ticks:{
+callback:value=>"€"+value
+},
+grid:{
+color:"rgba(255,255,255,0.05)"
+}
+},
+x:{
+grid:{
+display:false
+}
+}
+}
+}
+})
+
+}
+
+loadModels()
+
+</script>
+
+{% endblock %}

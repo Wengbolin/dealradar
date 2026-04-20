@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title data-i18n="cancel_subscription__dealradar">Cancel Subscription - DealRadar</title>
+
+<style>
+body{
+font-family:Arial;
+background:#0f172a;
+color:white;
+text-align:center;
+padding:40px;
+}
+
+.card{
+background:#1e293b;
+padding:30px;
+border-radius:10px;
+width:420px;
+margin:auto;
+}
+
+h2{margin-bottom:20px;}
+
+.option{
+text-align:left;
+margin:8px 0;
+}
+
+button{
+margin-top:20px;
+padding:10px 20px;
+border:none;
+border-radius:6px;
+cursor:pointer;
+}
+
+.submit{background:#ef4444;color:white;}
+.skip{background:#64748b;color:white;}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h2 data-i18n="why_are_you_cancelling">Why are you cancelling?</h2>
+
+<form id="survey">
+
+<div class="option"><input type="radio" name="reason" value="Too expensive"> Too expensive</div>
+<div class="option"><input type="radio" name="reason" value="Not enough deals"> Not enough deals</div>
+<div class="option"><input type="radio" name="reason" value="Data inaccurate"> Data inaccurate</div>
+<div class="option"><input type="radio" name="reason" value="Hard to use"> Hard to use</div>
+<div class="option"><input type="radio" name="reason" value="Stopped reselling"> I stopped reselling</div>
+<div class="option"><input type="radio" name="reason" value="Found another tool"> Found another tool</div>
+<div class="option"><input type="radio" name="reason" value="System slow"> System slow</div>
+<div class="option"><input type="radio" name="reason" value="Just testing"> Just testing</div>
+<div class="option"><input type="radio" name="reason" value="Missing features"> Missing features</div>
+<div class="option"><input type="radio" name="reason" value="Other"> Other</div>
+
+<button type="button" class="submit" onclick="submitSurvey()" data-i18n="submit__cancel">Submit & Cancel</button>
+<button type="button" class="skip" onclick="cancelDirect()" data-i18n="skip__cancel">Skip & Cancel</button>
+
+</form>
+
+</div>
+
+<script>
+
+async function submitSurvey(){
+
+let reason=document.querySelector('input[name="reason"]:checked');
+
+if(!reason){
+alert("Please select a reason");
+return;
+}
+
+await fetch("/api/cancel_feedback",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+reason:reason.value
+})
+});
+
+cancelDirect();
+
+}
+
+async function cancelDirect(){
+
+await fetch("/api/cancel_subscription",{method:"POST"});
+
+alert("Subscription cancelled. Access will remain until the end of your billing period.");
+
+window.location="/account";
+
+}
+
+</script>
+
+</body>
+</html>

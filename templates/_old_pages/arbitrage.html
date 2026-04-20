@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container">
+
+<h1 data-i18n="arbitrage_terminal">Arbitrage Terminal</h1>
+
+
+<div id="alertBox" class="alert"></div>
+
+
+<div class="feed">
+
+<h2 data-i18n="_live_arbitrage_feed">🟢 Live Arbitrage Feed</h2>
+
+<div id="liveFeed"></div>
+
+</div>
+
+
+<div class="controls">
+
+<div>
+<label data-i18n="minimum_profit">Minimum Profit:</label>
+
+<select id="profitFilter">
+<option value="0" data-i18n="all">All</option>
+<option value="10" data-i18n="10">10€</option>
+<option value="20" data-i18n="20">20€</option>
+<option value="50" data-i18n="50">50€</option>
+<option value="100" data-i18n="100">100€</option>
+<option value="200" data-i18n="200">200€</option>
+</select>
+</div>
+
+
+<div>
+<label data-i18n="sort_by">Sort by:</label>
+
+<select id="sortFilter">
+<option value="profit" data-i18n="profit" data-i18n="profit">Profit</option>
+<option value="score" selected data-i18n="score" data-i18n="score">Score</option>
+<option value="price" data-i18n="price" data-i18n="price">Price</option>
+</select>
+</div>
+
+</div>
+
+
+<table>
+
+<thead>
+
+<tr>
+<th data-i18n="title">Title</th>
+<th data-i18n="model">Model</th>
+<th data-i18n="price" data-i18n="price">Price</th>
+<th data-i18n="market_price">Market Price</th>
+<th data-i18n="profit" data-i18n="profit">Profit</th>
+<th data-i18n="strength">Strength</th>
+<th data-i18n="score" data-i18n="score">Score</th>
+<th data-i18n="level">Level</th>
+</tr>
+
+</thead>
+
+<tbody id="table"></tbody>
+
+</table>
+
+</div>
+
+
+<script>
+
+const profitFilter=document.getElementById("profitFilter")
+const sortFilter=document.getElementById("sortFilter")
+
+sortFilter.value="score"
+
+let lastTopDeal=null
+
+profitFilter.addEventListener("change",loadDeals)
+sortFilter.addEventListener("change",loadDeals)
+
+
+function levelClass(level){
+
+if(level.includes("S")) return "levelS"
+if(level.includes("A")) return "levelA"
+
+return "levelB"
+
+}
+
+
+function strengthBar(profit){
+
+let bars=1
+
+if(profit>150) bars=5
+else if(profit>100) bars=4
+else if(profit>60) bars=3
+else if(profit data-i18n="30_bars2let_html">30) bars=2
+
+let html=`<div class="strengthBar" data-i18n="forlet_i0i">`
+
+for(let i=0;i<bars;i++){
+html+=`<div class="bar"></div data-i18n="html">`
+}
+
+html+=`</div>`
+
+return html
+
+}
+
+
+function sortDeals(data,mode){
+
+if(mode==="profit"){
+data.sort((a,b)=>b.profit-a.profit)
+}
+
+if(mode==="score"){
+data.sort((a,b)=>b.score-a.score)
+}
+
+if(mode==="price"){
+data.sort((a,b)=>a.price-b.price)
+}
+
+return data
+
+}
+
+
+async function checkNewDeal(){
+
+const res = await fetch("/api/arbitrage?profit=" + profit,{
+headers:{
+"Authorization":"Bearer " + localStorage.getItem("token")
+}
+})
+
+const data=await res.json()
+
+if(!data.length) return
+
+let top=data[0]
+
+if(lastTopDeal!==top.title){
+
+lastTopDeal=top.title
+
+const alert=document.getElementById("alertBox")
+
+alert.style.display="block"
+
+alert.innerHTML=`🚨 NEW DEAL DETECTED — ${top.title} Profit ${top.profit}€`
+
+setTimeout(()=>{
+alert.style.display="none"
+},6000)
+
+loadDeals()
+
+}
+
+}
+
+
+async function loadFeed(){
+
+const res = await fetch("/api/arbitrage",{
+headers:{
+"Authorization":"Bearer " + localStorage.getItem("token")
+}
+})
+
+const data=await res.json()
+
+const feed=document.getElementById("liveFeed")
+
+feed.innerHTML=""
+
+data.slice(0,5).forEach(d=>{
+
+feed.innerHTML+=`
+<div class="feedItem">
+🟢 ${d.title} — Profit ${d.profit}€
+</div>
+`
+
+})
+
+}
+
+
+async function loadDeals(){
+
+const profit=profitFilter.value
+const sortMode=sortFilter.value
+
+const res = await fetch("/api/arbitrage?profit=" + profit,{
+headers:{
+"Authorization":"Bearer " + localStorage.getItem("token")
+}
+})
+
+let data=await res.json()
+
+data=sortDeals(data,sortMode)
+
+const table=document.getElementById("table")
+
+table.innerHTML=""
+
+data.forEach(d= data-i18n="let_titleifdurltitle">{
+
+let title
+
+if(d.url){
+title=`<a href="${d.url}" target="_blank" data-i18n="dtitle">${d.title}</a>`
+}else{
+title=d.title
+}
+
+let levelStyle=levelClass(d.level)
+
+let strength=strengthBar(d.profit)
+
+let row=`
+<tr ${d.title===lastTopDeal ? 'class="newDeal"' : ''}>
+<td data-i18n="title">${title}</td>
+<td data-i18n="dmodel">${d.model}</td>
+<td data-i18n="dprice">${d.price}</td>
+<td data-i18n="dmarketprice">${d.market_price}</td>
+<td data-i18n="dprofit">${d.profit}</td>
+<td data-i18n="strength">${strength}</td>
+<td data-i18n="dscore">${d.score}</td>
+<td class="${levelStyle}" data-i18n="dlevel">${d.level}</td>
+</tr>
+`
+
+table.innerHTML+=row
+
+})
+
+}
+
+loadDeals()
+loadFeed()
+checkNewDeal()
+
+setInterval(loadFeed,10000)
+setInterval(checkNewDeal,10000)
+setInterval(loadDeals,10000)
+
+</script>
+
+
+
+{% endblock %}

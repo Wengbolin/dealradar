@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+
+.page-header{
+margin-bottom:30px;
+}
+
+.page-header h1{
+margin-bottom:5px;
+}
+
+.page-header p{
+color:#666;
+}
+
+/* filter */
+
+.filters{
+margin-bottom:25px;
+}
+
+.filter-btn{
+background:#eee;
+border:none;
+padding:8px 14px;
+margin-right:10px;
+border-radius:6px;
+cursor:pointer;
+font-size:14px;
+}
+
+.filter-btn:hover{
+background:#ddd;
+}
+
+/* deals grid */
+
+.deals-grid{
+display:grid;
+grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+gap:20px;
+}
+
+/* card */
+
+.card{
+background:white;
+padding:20px;
+border-radius:10px;
+box-shadow:0 2px 8px rgba(0,0,0,0.08);
+}
+
+.card:hover{
+transform:translateY(-2px);
+box-shadow:0 4px 12px rgba(0,0,0,0.12);
+}
+
+/* title */
+
+.title{
+font-weight:bold;
+font-size:16px;
+margin-bottom:10px;
+}
+
+/* numbers */
+
+.meta{
+font-size:14px;
+line-height:1.7;
+}
+
+.price{
+color:#333;
+}
+
+.market{
+color:#666;
+}
+
+.profit{
+color:#4CAF50;
+font-weight:bold;
+}
+
+.score{
+color:#888;
+font-size:13px;
+}
+
+/* deal button */
+
+.deal-btn{
+display:inline-block;
+margin-top:12px;
+background:#4CAF50;
+color:white;
+padding:8px 14px;
+border-radius:6px;
+text-decoration:none;
+font-size:13px;
+}
+
+.deal-btn:hover{
+opacity:0.9;
+}
+
+</style>
+
+
+<div class="container">
+
+<div class="page-header">
+
+<h1 data-i18n="_top_opportunities">🔥 Top Opportunities</h1>
+
+<p data-i18n="best_underpriced_electronics_across_euro">Best underpriced electronics across European marketplaces.</p>
+
+</div>
+
+
+<div class="filters">
+
+<button class="filter-btn" data-i18n="all">All</button>
+<button class="filter-btn">Profit > €50</button>
+<button class="filter-btn">Profit > €100</button>
+
+</div>
+
+
+<div id="deals" class="deals-grid"></div>
+
+</div>
+
+
+<script>
+
+fetch("/api/opportunities",{
+headers:{
+"Authorization":"Bearer " + localStorage.getItem("token")
+}
+})
+.then(r=>r.json())
+.then(data=>{
+
+let html=""
+
+data.forEach(d=>{
+
+html+=`
+<div class="card">
+
+<div class="title" data-i18n="dtitle">${d.title}</div>
+
+<div class="meta">
+
+<span class="price" data-i18n="price_dprice">Price: €${d.price}</span><br>
+<span class="market" data-i18n="market_dmarketprice">Market: €${d.market_price}</span><br>
+<span class="profit" data-i18n="profit_dprofit">Profit: €${d.profit}</span><br>
+<span class="score" data-i18n="score_dscore">Score: ${d.score}</span>
+
+</div>
+
+</div>
+`
+})
+
+document.getElementById("deals").innerHTML=html
+
+})
+
+</script>
+
+{% endblock %}

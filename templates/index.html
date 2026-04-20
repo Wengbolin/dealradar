@@ -1,0 +1,383 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+
+/* ===== SECTION（纵向结构核心）===== */
+.section{
+max-width:1100px;
+margin:40px auto;
+padding:40px 20px;
+border-top:1px solid #1F2937;
+}
+
+/* ===== HERO ===== */
+.hero{
+display:flex;
+flex-direction:column;
+align-items:center;
+padding:60px 20px 30px;
+}
+
+.hero-card{
+background:linear-gradient(145deg,#111827,#0b1220);
+border:1px solid #263041;
+border-radius:18px;
+padding:35px;
+width:650px;
+text-align:center;
+}
+
+.hero-profit{
+font-size:42px;
+font-weight:800;
+color:#22C55E;
+}
+
+/* ===== CARDS ===== */
+.cards{
+display:flex;
+gap:20px;
+flex-wrap:wrap;
+}
+
+.card{
+background:#111827;
+border:1px solid #263041;
+border-radius:14px;
+padding:20px;
+width:260px;
+}
+
+/* ===== DEALS（改为 GRID）===== */
+.deals{
+display:grid;
+grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+gap:20px;
+}
+
+.deal{
+background:#111827;
+border:1px solid #263041;
+border-radius:14px;
+padding:20px;
+}
+
+.deal.big{
+grid-column: span 2;
+border:2px solid #22C55E;
+background:#0f172a;
+}
+
+.profit{
+font-size:28px;
+font-weight:800;
+color:#22C55E;
+}
+
+/* ===== BUTTON ===== */
+.btn{
+display:block;
+margin-top:10px;
+padding:10px;
+border-radius:8px;
+text-align:center;
+background:#22C55E;
+color:#000;
+text-decoration:none;
+font-weight:bold;
+}
+
+</style>
+
+<!-- ===== HERO ===== -->
+<div class="hero">
+
+<div class="hero-card">
+
+<div style="font-size:14px;color:#9CA3AF;" data-i18n="hero__subtitle">
+💸 You are missing profit RIGHT NOW
+</div>
+
+<div class="hero-profit" id="heroProfit">
++€120
+</div>
+
+<div style="margin-top:6px;color:#CBD5F5;" id="heroModel">
+iPhone flipping opportunity
+</div>
+
+<div style="margin-top:10px;font-size:13px;color:#F59E0B;" data-i18n="hero__urgency">
+⏳ This deal may disappear in hours
+</div>
+
+<a href="/pricing" class="btn" style="margin-top:15px;" data-i18n="hero__cta">
+Make This Profit Now
+</a>
+
+</div>
+
+<div style="max-width:650px;margin:20px auto 0 auto;text-align:center;">
+
+<div 
+  id="statsListings" 
+  style="font-size:13px;color:#94A3B8;" 
+  data-i18n="stats__listings">
+</div>
+
+<div style="font-size:13px;color:#94A3B8;" data-i18n="stats__deals">
+✔ 1,200+ profitable deals detected
+</div>
+
+<div style="font-size:13px;color:#94A3B8;" data-i18n="stats__avg_profit">
+✔ Avg profit per deal: €85
+</div>
+
+<div style="margin-top:6px;font-size:13px;color:#22C55E;" data-i18n="hero__real">
+🔥 Real market data · Real opportunities
+</div>
+
+<div style="margin-top:10px;font-size:13px;color:#F59E0B;" data-i18n="hero__live">
+⚡ Live signals updated every minute
+</div>
+
+</div>
+
+</div>
+
+<!-- ===== MARKET ===== -->
+<div class="section">
+<h2 data-i18n="home__market_snapshot">📊 Market Snapshot</h2>
+<div id="market" class="cards"></div>
+</div>
+
+<!-- ===== LISTINGS ===== -->
+<div class="section">
+<h2 data-i18n="home__listings">🔥 High Quality Listings</h2>
+<div id="listings" class="cards"></div>
+</div>
+
+<!-- ===== SIGNALS ===== -->
+<div class="section">
+<h2 data-i18n="home__signals">🚨 Deal Signals</h2>
+<div id="signals" class="cards"></div>
+</div>
+
+<!-- ===== DEALS ===== -->
+<div class="section">
+<h2 data-i18n="home__live_deals">🔥 Live Deals</h2>
+<div id="deals" class="deals"></div>
+</div>
+
+<script>
+
+async function init(){
+
+const res = await fetch("/api/home")
+const data = await res.json()
+
+renderHero(data)
+renderMarket(data)
+renderListings(data)
+renderSignals(data)
+renderDeals(data)
+
+}
+
+/* ===== HERO ===== */
+function renderHero(data){
+
+    if(!data.top_deals || data.top_deals.length === 0) return
+
+    const d = data.top_deals[0]
+
+    document.getElementById("heroProfit").innerText = "+€"+d.profit
+    document.getElementById("heroModel").innerText = d.title
+
+    // ===== stats: listings =====
+    const listingsEl = document.getElementById("statsListings")
+    if(listingsEl){
+        listingsEl.dataset.vars = JSON.stringify({
+            count: data.stats ? data.stats.total_listings : 0
+        })
+    }
+
+    // ===== stats: deals =====
+    const dealsEl = document.querySelector('[data-i18n="stats__deals"]')
+    if(dealsEl){
+        dealsEl.dataset.vars = JSON.stringify({
+            count: data.all_deals ? data.all_deals.length : 0
+        })
+    }
+
+    // ===== stats: avg profit =====
+    const avgEl = document.querySelector('[data-i18n="stats__avg_profit"]')
+    if(avgEl){
+
+        let avg = 0
+
+        if(data.all_deals && data.all_deals.length > 0){
+            const total = data.all_deals.reduce((sum,d)=> sum + (d.profit || 0), 0)
+            avg = Math.round(total / data.all_deals.length)
+        }
+
+        avgEl.dataset.vars = JSON.stringify({
+            amount: avg
+        })
+    }
+
+    applyTranslations()
+}
+
+/* ===== MARKET ===== */
+function renderMarket(data){
+
+const container = document.getElementById("market")
+container.innerHTML = ""
+
+const list = data.market || []
+
+list.slice(0,4).forEach(m=>{
+
+container.innerHTML += `
+<div class="card">
+<h3>${m.model}</h3>
+<div>${t("market__price",{price: m.price})}</div>
+<div>${t("market__range",{low: m.low, high: m.high})}</div>
+<div>${t("market__liquidity",{value: formatLiquidity(m.liquidity)})}</div>
+</div>
+`
+
+})
+
+}
+
+function formatLiquidity(val){
+
+    const lang = localStorage.getItem("lang") || "en"
+
+    if(lang === "zh"){
+        if(val === "Very High") return "⚡ 秒出（强需求）"
+        if(val === "High") return "🔥 很容易卖"
+        if(val === "Medium") return "👌 正常流通"
+        if(val === "Low") return "⚠️ 出手较慢"
+    }
+
+    if(lang === "en"){
+        if(val === "Very High") return "⚡ Sells instantly"
+        if(val === "High") return "🔥 Easy to sell"
+        if(val === "Medium") return "👌 Normal"
+        if(val === "Low") return "⚠️ Slow to sell"
+    }
+
+    if(lang === "it"){
+        if(val === "Very High") return "⚡ Vendita immediata"
+        if(val === "High") return "🔥 Facile da vendere"
+        if(val === "Medium") return "👌 Normale"
+        if(val === "Low") return "⚠️ Vendita lenta"
+    }
+
+    if(lang === "bn"){
+        if(val === "Very High") return "⚡ খুব দ্রুত বিক্রি"
+        if(val === "High") return "🔥 সহজে বিক্রি হয়"
+        if(val === "Medium") return "👌 স্বাভাবিক"
+        if(val === "Low") return "⚠️ বিক্রি ধীর"
+    }
+
+    return val
+}
+
+/* ===== LISTINGS ===== */
+function renderListings(data){
+
+const container = document.getElementById("listings")
+container.innerHTML = ""
+
+const list = data.all_deals || []
+
+list.sort((a,b)=> (b.profit||0) - (a.profit||0))
+
+list.slice(0,4).forEach(d=>{
+
+container.innerHTML += `
+<div class="card">
+<h3>${d.title.substring(0,20)}</h3>
+<div>€${d.price}</div>
+<div data-i18n="market__price">Market: €${d.market_price || "-"}</div>
+</div>
+`
+
+})
+
+}
+
+/* ===== SIGNALS ===== */
+function renderSignals(data){
+
+const container = document.getElementById("signals")
+container.innerHTML = ""
+
+const list = data.all_deals || []
+
+list.sort((a,b)=> (b.profit||0) - (a.profit||0))
+
+list.slice(0,3).forEach(d=>{
+
+container.innerHTML += `
+<div class="card">
+<div class="profit">💰 €${d.profit}</div>
+<div>${d.title.substring(0,25)}</div>
+<a href="/signals" class="btn" data-i18n="signals__view">View Signal</a>
+</div>
+`
+
+})
+
+}
+
+/* ===== DEALS（重点：分层结构）===== */
+function renderDeals(data){
+
+const container = document.getElementById("deals")
+container.innerHTML = ""
+
+const list = data.all_deals || []
+
+list.sort((a,b)=> (b.profit||0) - (a.profit||0))
+
+const top = list[0]
+const rest = list.slice(1,6)
+
+if(top){
+container.innerHTML += `
+<div class="deal big">
+
+<div class="profit">🔥 +€${top.profit}</div>
+<div>${top.title.substring(0,40)}</div>
+<div data-i18n="signals__buy">Buy €${top.price}</div>
+<div data-i18n="signals__sell">Sell €${top.market_price || "-"}</div>
+<a href="/pricing" class="btn" data-i18n="hero__cta">Take This Deal</a>
+
+</div>
+`
+}
+
+rest.forEach(d=>{  
+container.innerHTML += ` 
+<div class="deal"> 
+
+<div class="profit">💰 +€${d.profit}</div>
+<div>${d.title.substring(0,25)}</div>
+<a href="/pricing" class="btn" data-i18n="signals__buy">Buy</a>
+
+</div>
+`
+})
+
+}
+
+init()
+
+</script>
+
+{% endblock %}

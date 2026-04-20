@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="section">
+
+<h2 data-i18n="signals__title"></h2>
+
+<div id="signals" class="grid"></div>
+
+</div>
+
+<style>
+
+.grid{
+display:flex;
+flex-wrap:wrap;
+gap:20px;
+}
+
+.signal-card{
+background:#111827;
+border:1px solid #263041;
+border-radius:16px;
+padding:20px;
+width:300px;
+}
+
+.profit{
+font-size:28px;
+font-weight:800;
+color:#22C55E;
+margin-bottom:10px;
+}
+
+.btn{
+margin-top:10px;
+display:block;
+text-align:center;
+}
+
+.locked{
+opacity:0.5;
+position:relative;
+}
+
+.locked::after{
+content:"🔒 Pro";
+position:absolute;
+top:10px;
+right:10px;
+color:#F59E0B;
+font-size:12px;
+}
+
+</style>
+
+<script>
+
+async function loadSignals(){
+
+    const res = await fetch("/api/home")
+    const data = await res.json()
+
+    const list = data.top_deals || []
+
+    const container = document.getElementById("signals")
+    container.innerHTML = ""
+
+    const user = JSON.parse(atob(localStorage.getItem("token").split('.')[1]))
+    const isPro = user && Number(user.plan) >= 2
+
+    list.slice(0,6).forEach((d,i)=>{
+
+        let limit = 2 // Free 默认
+
+        if(user && user.plan == 1) limit = 10   // Starter
+        if(user && user.plan >= 2) limit = 999  // Pro
+
+        const locked = i >= limit
+
+        const div = document.createElement("div")
+        div.className = "signal-card " + (locked ? "locked" : "")
+
+        div.innerHTML = `
+
+        <div class="profit">
+        ${locked ? t("signals__locked_profit") : "💰 €"+d.profit}
+        </div>
+
+        <div>📱 ${d.title}</div>
+
+        <div>${t("signals__buy",{price: locked ? "???" : d.price})}</div>
+        <div>${t("signals__sell",{price: locked ? "???" : (d.market_price || "-")})}</div>
+
+        <div style="margin-top:8px;font-size:13px;color:#F59E0B;">
+        ${locked ? t("signals__missing") : t("signals__high")}
+        </div>
+
+        <a href="${locked ? '/pricing' : (d.url || '#')}" class="btn">
+
+        ${locked 
+            ? t("signals__unlock",{profit: d.profit || 50}) 
+            : t("signals__cta")}
+
+        <div style="font-size:12px;color:#94A3B8;margin-top:6px;">
+        ${locked ? t("signals__unlock_sub") : t("signals__cta_sub")}
+        </div>
+
+        </a>
+        `
+
+        container.appendChild(div)
+
+    })
+
+}
+
+loadSignals()
+
+</script>
+
+{% endblock %}

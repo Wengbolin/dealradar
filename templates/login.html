@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="auth-container">
+
+<div class="auth-card">
+
+<h2 class="logo">🚀 DealRadar</h2>
+<p class="subtitle" data-i18n="login__title"></p>
+
+<form id="loginForm">
+
+<input id="username" class="input" data-i18n-placeholder="login__username">
+
+<input id="email" type="email" class="input" placeholder="Email">
+
+<input id="password" type="password" class="input" data-i18n-placeholder="login__password">
+
+<button type="submit" class="btn main-btn" data-i18n="login__cta"></button>
+
+<button type="button" onclick="register()" class="btn-secondary reg-btn">
+Create account
+</button>
+
+</form>
+
+<p class="hint">⚡ Start free — unlock your first deal instantly</p>
+
+</div>
+
+</div>
+
+<style>
+
+.auth-container{
+display:flex;
+justify-content:center;
+align-items:center;
+height:80vh;
+}
+
+.auth-card{
+width:360px;
+background:#111827;
+border:1px solid #263041;
+border-radius:16px;
+padding:30px;
+text-align:center;
+box-shadow:0 10px 40px rgba(0,0,0,0.6);
+}
+
+.logo{
+margin-bottom:5px;
+}
+
+.subtitle{
+font-size:13px;
+color:#94A3B8;
+margin-bottom:20px;
+}
+
+.input{
+width:100%;
+padding:12px;
+margin-bottom:12px;
+border-radius:8px;
+border:1px solid #374151;
+background:#0B1220;
+color:#fff;
+}
+
+.input:focus{
+outline:none;
+border:1px solid #22C55E;
+}
+
+.main-btn{
+width:100%;
+margin-top:10px;
+}
+
+.reg-btn{
+width:100%;
+margin-top:10px;
+}
+
+.hint{
+margin-top:15px;
+font-size:12px;
+color:#F59E0B;
+}
+
+</style>
+
+<script>
+
+/* ===== placeholder i18n 支持 ===== */
+function applyPlaceholders(){
+    document.querySelectorAll("[data-i18n-placeholder]").forEach(el=>{
+        const key = el.dataset.i18nPlaceholder
+        el.placeholder = t(key)
+    })
+}
+
+/* ===== 登录 ===== */
+document.getElementById("loginForm").onsubmit = async function(e){
+
+    e.preventDefault()
+
+    let username = document.getElementById("username").value
+    let password = document.getElementById("password").value
+
+    let res = await fetch("/api/login",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({username,password})
+    })
+
+    let data = await res.json()
+
+    console.log("LOGIN RESPONSE:", data)
+    if(data && data.access_token){
+        localStorage.setItem("token",data.access_token)
+        alert("Login success")
+        location.href="/"
+    }else{
+        alert("Login failed")
+    }
+
+}
+
+
+/* ===== 注册 ===== */
+async function register(){
+
+    let username = document.getElementById("username").value
+    let email = document.getElementById("email").value
+    let password = document.getElementById("password").value
+
+    if(!username || !password || !email){
+        alert("Fill all fields")
+        return
+    }
+
+    let res = await fetch("/api/register",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+            username,
+            password,
+            email: email
+        })
+    })
+
+    let data = await res.json()
+
+    console.log("REGISTER RESPONSE:", data)
+
+    if(data.status === "ok"){
+
+        let loginRes = await fetch("/api/login",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({username,password})
+        })
+
+        let loginData = await loginRes.json()
+
+        if(loginData.access_token){
+            localStorage.setItem("token",loginData.access_token)
+            setTimeout(()=>{
+                alert("Registered & Logged in ✔")
+                location.href="/"
+            }, 100)
+        }else{
+            alert("Login after register failed")
+        }
+
+    }else{
+        alert("Register failed: " + JSON.stringify(data))
+    }
+
+}
+
+setTimeout(applyPlaceholders, 200)
+
+</script>
+
+{% endblock %}

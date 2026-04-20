@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1 data-i18n="admin">Admin</h1>
+
+<div class="container">
+
+<div class="card">
+<h2 data-i18n="dealradar_admin">DealRadar Admin</h2>
+
+<div class="stat">
+Total Users: {{users}}
+</div>
+
+<div class="stat">
+Premium Users: {{premium}}
+</div>
+
+<div class="stat">
+Revenue (30d): <b id="revenue">€0</b>
+</div>
+
+<div class="stat">
+Orders: <b id="orders">0</b>
+</div>
+
+</div>
+
+</div>
+
+<style>
+.container {
+max-width: 800px;
+margin: 20px auto;
+}
+
+.card {
+background: #0f172a;
+padding: 20px;
+border-radius: 12px;
+border: 1px solid rgba(255,255,255,0.05);
+}
+
+.stat {
+margin-top: 10px;
+font-size: 16px;
+}
+</style>
+
+<script>
+async function loadRevenue(){
+
+    try{
+        const res = await fetch("/api/revenue")
+        const data = await res.json()
+
+        document.getElementById("revenue").innerText = "€" + (data.total_revenue || 0)
+        document.getElementById("orders").innerText = data.total_orders || 0
+
+    }catch(e){
+        console.log("加载收入失败", e)
+    }
+}
+
+loadRevenue()
+</script>
+
+{% endblock %}

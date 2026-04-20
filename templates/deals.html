@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.deal-card{
+background:#111827;
+border:1px solid #263041;
+border-radius:16px;
+padding:20px;
+width:100%;
+box-sizing:border-box;
+transition:0.25s;
+box-shadow:0 6px 25px rgba(0,0,0,0.6);
+overflow:hidden;
+}
+
+.deal-card:hover{
+transform:translateY(-5px);
+background:#1F2937;
+}
+
+.grid{
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+gap: 24px;
+margin-top: 20px;
+align-items: stretch;
+}
+
+.section{
+max-width:1200px;
+margin:auto;
+padding:20px;
+}
+
+.profit{
+font-size:32px;
+font-weight:800;
+color:#22C55E;
+margin-bottom:10px;
+}
+
+.tag{
+display:inline-block;
+padding:4px 8px;
+border-radius:6px;
+font-size:11px;
+margin-bottom:8px;
+}
+
+.a{background:#22C55E22;color:#22C55E;}
+.b{background:#F59E0B22;color:#F59E0B;}
+.c{background:#EF444422;color:#EF4444;}
+
+.btn{
+margin-top:12px;
+padding:10px;
+border-radius:8px;
+text-align:center;
+font-weight:bold;
+text-decoration:none;
+display:block;
+}
+
+.buy{background:#22C55E;color:#000;}
+.watch{background:#F59E0B;color:#000;}
+.skip{background:#374151;color:#aaa;}
+
+.locked{
+opacity:0.5;
+position:relative;
+}
+
+.locked::after{
+content:"🔒 Pro";
+position:absolute;
+top:10px;
+right:10px;
+color:#F59E0B;
+font-size:12px;
+}
+</style>
+
+<div class="section">
+
+<h2 data-i18n="deals__title"></h2>
+
+<div id="deals" class="grid"></div>
+
+</div>
+
+<script>
+
+async function loadDeals(){
+
+    const res = await fetch("/api/arbitrage",{
+        headers:{
+            "Authorization":"Bearer " + localStorage.getItem("token")
+        }
+    })
+
+    const data = await res.json()
+    let deals = data || []
+
+    renderDeals(deals.slice(0,9))
+}
+
+function renderDeals(deals){
+
+    const container = document.getElementById("deals")
+    container.innerHTML = ""
+
+    deals.forEach((d,i)=>{
+
+        const profit = d.profit || 0
+
+        let level = d.level || "C级"
+
+        let levelClass = "c"
+        if(level === "A级") levelClass = "a"
+        if(level === "B级") levelClass = "b"
+
+        let btnClass = "skip"
+
+        if(profit >= 80){
+            btnClass = "buy"
+        }
+        else if(profit >= 40){
+            btnClass = "watch"
+        }
+
+        const user = JSON.parse(atob(localStorage.getItem("token").split('.')[1]))
+        const isPro = user && Number(user.plan) >= 2
+
+        let limit = 2
+
+        if(user && user.plan == 1) limit = 10
+        if(user && user.plan >= 2) limit = 999
+
+        const locked = i >= limit   
+
+        const div = document.createElement("div")
+        div.className = "deal-card " + (locked ? "locked" : "")
+
+        div.innerHTML = `
+
+        <div class="profit">
+        ${locked ? t("deals__hidden_profit") : "💰 +€"+profit}
+        </div>
+
+        <div style="font-size:13px;color:#22C55E;">
+        ${t("deals__score",{score: d.score || "-"})}
+        </div>
+
+        <div style="margin-bottom:10px;">
+        📱 ${d.title ? d.title.substring(0,30) : t("deals__no_title")}
+        </div>
+
+        <div style="font-size:13px;color:#94A3B8;">
+        ${t("deals__sell_time",{time: d.sell_time || "2–4 days"})}
+        </div>
+
+        <div style="font-size:13px;color:#94A3B8;">
+        ${t("deals__risk",{risk: d.risk || "LOW"})}
+        </div>
+
+        <div style="margin-top:8px;font-size:12px;color:#F59E0B;">
+        ${locked 
+            ? t("deals__hidden_count",{count: deals.length - 1}) 
+            : t("deals__high")}
+        </div>
+
+        <a href="${locked ? '/pricing' : (d.url || d.link || '#')}" class="btn ${locked ? "" : btnClass}">
+
+        ${locked ? t("deals__unlock_all") : t("deals__buy")}
+
+        <div style="font-size:12px;color:#94A3B8;margin-top:6px;">
+        ${locked ? t("deals__users_profit") : t("deals__act_fast")}
+        </div>
+
+        </a>
+        `
+
+        container.appendChild(div)
+
+    })
+
+}
+
+loadDeals()
+
+</script>
+
+{% endblock %}

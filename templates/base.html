@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<title data-i18n="dealradar">DealRadar</title>
+<link rel="icon" href="/static/favicon.ico">
+
+<link rel="stylesheet" href="/static/css/main.css">
+
+<style>
+body{
+background:#070B10;
+color:#F1F5F9;
+font-family:Inter, Arial;
+}
+
+.container{
+max-width:1100px;
+margin:auto;
+padding:30px 20px;
+}
+
+.card{
+background:#111827;
+border:1px solid #263041;
+border-radius:14px;
+padding:20px;
+}
+
+h1,h2,h3{
+color:#E6EDF3;
+}
+
+.btn{
+display:inline-block;
+padding:10px 16px;
+border-radius:8px;
+background:#22C55E;
+color:#000;
+font-weight:bold;
+text-decoration:none;
+cursor:pointer;
+}
+
+.btn-secondary{
+background:#1F2937;
+color:#CBD5F5;
+}
+
+.section{
+margin-bottom:40px;
+}
+</style>
+
+<script src="/static/js/api.js"></script>
+
+</head>
+
+<body>
+
+<nav>
+
+<div class="logo">
+<a href="/" data-i18n="dealradar">DealRadar</a>
+</div>
+
+<div class="menu">
+
+<a href="/" data-i18n="nav__home"
+{% if request.url.path == '/' %}class="active"{% endif %}>
+Home
+</a>
+
+<a href="/market" data-i18n="nav__market"
+{% if request.url.path.startswith('/market') %}class="active"{% endif %}>
+Market
+</a>
+
+<a href="/signals" data-i18n="nav__signals"
+{% if request.url.path.startswith('/signals') %}class="active"{% endif %}>
+Signals
+</a>
+
+<a href="/deals" data-i18n="nav__deals"
+{% if request.url.path.startswith('/deals') %}class="active"{% endif %}>
+Deals
+</a>
+
+<a href="/pricing" data-i18n="nav__pricing"
+{% if request.url.path.startswith('/pricing') %}class="active"{% endif %}>
+Pricing
+</a>
+
+</div>
+
+<div class="right-menu">
+
+<div class="langMenu">
+
+<button onclick="toggleLangMenu()" class="langBtn" data-i18n="lang__label">
+🌐 Language
+</button>
+
+<div id="langDropdown" class="langDropdown">
+
+<div onclick="changeLang('en')" data-i18n="lang__en">English</div>
+<div onclick="changeLang('it')" data-i18n="lang__it">Italiano</div>
+<div onclick="changeLang('zh')" data-i18n="lang__zh">中文</div>
+<div onclick="changeLang('bn')" data-i18n="lang__bn">বাংলা</div>
+
+</div>
+
+</div>
+
+<a href="/login" data-i18n="nav__login"
+{% if request.url.path.startswith('/login') %}class="login-btn"{% endif %}>
+Login
+</a>
+
+<a href="/account" data-i18n="nav__account"
+{% if request.url.path.startswith('/account') %}class="active"{% endif %}>
+Account
+</a>
+
+<a href="#" onclick="logout()" class="btn-secondary" style="margin-left:10px;">
+Logout
+</a>
+
+</div>
+
+</nav>
+
+<div class="container">
+{% block content %}{% endblock %}
+</div>
+
+<script>
+
+/* ===== 🌍 全局 i18n 系统 ===== */
+
+let LANG = localStorage.getItem("lang") || "en"
+let dict = {}
+
+async function loadLang(lang = LANG){
+
+    LANG = lang
+    localStorage.setItem("lang", LANG)
+
+    const res = await fetch("/static/lang/" + LANG + ".json?v=" + Date.now())
+    dict = await res.json()
+
+    applyTranslations()
+}
+
+function applyTranslations(){
+
+    document.querySelectorAll("[data-i18n]").forEach(el=>{
+        const key = el.dataset.i18n
+
+        let vars = {}
+
+        if(el.dataset.vars){
+            try{
+                vars = JSON.parse(el.dataset.vars)
+            }catch(e){
+                console.warn("❌ Invalid vars JSON:", el.dataset.vars)
+            }
+        }
+
+        if(dict[key]){
+            let str = dict[key]
+
+            Object.keys(vars).forEach(k=>{
+                str = str.replace(`{${k}}`, vars[k])
+            })
+
+            el.innerText = str
+        } else {
+            console.warn("❌ Missing translation:", key)
+            el.innerText = key
+        }
+    })
+}
+
+function t(key, vars = {}){
+    let str = dict[key]
+
+    if(!str){
+        console.warn("❌ Missing key:", key)
+        return key
+    }
+
+    Object.keys(vars).forEach(k=>{
+        str = str.replace(`{${k}}`, vars[k])
+    })
+
+    return str
+}
+
+async function changeLang(lang){
+
+    await loadLang(lang)
+
+    // 关闭菜单
+    const menu = document.getElementById("langDropdown")
+    if(menu){
+        menu.style.display = "none"
+    }
+
+    // 👇 首页用 init（关键）
+    if(typeof init === "function"){
+        await init()
+    } else {
+        // 其他页面
+        if(typeof loadDeals === "function") await loadDeals()
+        if(typeof loadMarket === "function") await loadMarket()
+        if(typeof loadSignals === "function") await loadSignals()
+        if(typeof renderPricing === "function") renderPricing()
+    }
+}
+
+/* ===== UI ===== */
+
+function toggleLangMenu(){
+
+    const menu = document.getElementById("langDropdown")
+
+    const visible = window.getComputedStyle(menu).display
+
+    menu.style.display = visible === "none" ? "block" : "none"
+}
+
+document.addEventListener("click", function(e){
+
+    const menu = document.getElementById("langDropdown")
+
+    if(!e.target.closest(".langMenu")){
+        menu.style.display = "none"
+    }
+
+})
+
+/* ===== 初始化 ===== */
+window.addEventListener("DOMContentLoaded", async () => {
+    await loadLang()
+
+    const token = localStorage.getItem("token")
+
+    const logoutBtn = document.querySelector('[onclick="logout()"]')
+    const loginBtn = document.querySelector('[data-i18n="nav__login"]')
+
+    // 👉 登录状态控制
+    if(token){
+        if(loginBtn) loginBtn.style.display = "none"
+    }else{
+        if(logoutBtn) logoutBtn.style.display = "none"
+    }
+
+    // 👉 页面加载
+    if(typeof loadDeals === "function"){
+        await loadDeals()
+    }
+})
+
+function logout(){
+    localStorage.removeItem("token")
+    location.href = "/login"
+}
+
+</script>
+
+</body>
+</html>
