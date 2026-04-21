@@ -4,9 +4,10 @@ from pathlib import Path
 
 from config import DB_PATH
 
-DB_NAME = str(DB_PATH)
+DB_NAME = DB_PATH
 
-def init_db():
+def setup():
+    init_db()
 
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
@@ -96,7 +97,7 @@ def mark_inactive():
     SET is_active = 0
     WHERE last_seen_time < ?
     """, (cutoff,))
-    print("UPDATED:", listing_id, image_url)
+    print("UPDATED records")
 
     conn.commit()
     conn.close()

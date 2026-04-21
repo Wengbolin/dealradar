@@ -376,6 +376,10 @@ def radar_velocity(user_id: int = Depends(get_current_user)):
 
     return get_velocity_index()
 
+@app.on_event("startup")
+def startup_event():
+    init_db()
+
 # =========================
 # Price Trend
 # =========================
