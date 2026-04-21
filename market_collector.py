@@ -120,4 +120,3 @@ def cleanup_old_records():
     conn.close()
 
 
-init_db()
