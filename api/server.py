@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from fastapi import FastAPI
 import json
 
-from config import STRIPE_SECRET_KEY
+from api.config import STRIPE_SECRET_KEY
 from api.stripe_webhook import router as stripe_webhook_router
 from api.routes.pages import router as pages_router
 
