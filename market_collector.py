@@ -2,7 +2,7 @@ import sqlite3
 import time
 from pathlib import Path
 
-from config import DB_PATH
+from api.config import DB_PATH
 
 DB_NAME = DB_PATH
 

@@ -1,17 +1,15 @@
 from api.auth import create_access_token, verify_token
 print("SERVER FILE LOADED:", __file__)
 from fastapi import FastAPI, Header, Depends, Request
+import json
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import sqlite3
 import bcrypt
-import json
 import stripe
 import math
 from pathlib import Path
 from datetime import datetime, timedelta
-from fastapi import FastAPI
-import json
 
 from api.config import STRIPE_SECRET_KEY
 from api.stripe_webhook import router as stripe_webhook_router
@@ -22,12 +20,16 @@ from fastapi.templating import Jinja2Templates
 
 from market_radar_engine import get_hot_models, get_arbitrage_index, get_velocity_index
 
+from market_collector import init_db
 
 stripe.api_key = STRIPE_SECRET_KEY
 
+import os
+
 app = FastAPI(title="欧洲二手市场情报API")
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+if os.path.exists("static"):
+    app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.include_router(stripe_webhook_router)
 app.include_router(pages_router)
@@ -35,12 +37,15 @@ app.include_router(pages_router)
 # =========================
 # 路径配置
 # =========================
-from config import DB_PATH
+from api.config import DB_PATH
 from pathlib import Path
 
 CACHE_PATH = Path(__file__).resolve().parent.parent / "arbitrage_cache.json"
 
-templates = Jinja2Templates(directory="templates")
+if os.path.exists("templates"):
+    templates = Jinja2Templates(directory="templates")
+else:
+    templates = None
 
 # =========================
 # 工具函数
