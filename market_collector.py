@@ -6,8 +6,7 @@ from api.config import DB_PATH
 
 DB_NAME = DB_PATH
 
-def setup():
-    init_db()
+def init_db():
 
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
