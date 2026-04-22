@@ -17,7 +17,7 @@ from crawler.ebay_crawler import fetch_ebay
 # ======================
 
 BASE_DIR = Path(__file__).resolve().parent
-from config import DB_PATH
+from api.config import DB_PATH
 
 print("Hunter 启动 - Subito + eBay")
 

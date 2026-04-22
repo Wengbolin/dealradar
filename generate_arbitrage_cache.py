@@ -1,6 +1,9 @@
 import json
-from deal_scanner import scan_deals
 from pathlib import Path
+
+from api.config import DB_PATH   # 👈 加这一行
+
+from deal_scanner import scan_deals
 from notifier.telegram import send
 
 CACHE_FILE = Path("arbitrage_cache.json")

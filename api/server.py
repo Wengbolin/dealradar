@@ -38,6 +38,7 @@ app.include_router(pages_router)
 # 路径配置
 # =========================
 from api.config import DB_PATH
+print("🔥 DB PATH =", DB_PATH)
 from pathlib import Path
 
 CACHE_PATH = Path(__file__).resolve().parent.parent / "arbitrage_cache.json"

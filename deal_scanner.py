@@ -6,8 +6,7 @@ from profit_filter import extract_model, is_profitable, extract_storage
 from score_engine import calculate_score
 from decision_engine import make_decision
 
-from config import DB_PATH
-
+from api.config import DB_PATH
 # =========================
 # 加载价格缓存
 # =========================
