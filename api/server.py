@@ -39,6 +39,7 @@ app.include_router(pages_router)
 # =========================
 from api.config import DB_PATH
 print("🔥 DB PATH =", DB_PATH)
+print("🔥 STRIPE KEY =", STRIPE_SECRET_KEY)
 from pathlib import Path
 
 CACHE_PATH = Path(__file__).resolve().parent.parent / "arbitrage_cache.json"
@@ -663,8 +664,8 @@ def create_checkout_session(
             },
             "quantity":1
         }],
-        success_url="http://127.0.0.1:8000/success",
-        cancel_url="http://127.0.0.1:8000/cancel"
+        success_url="https://dealradar-kfc5.onrender.com/success",
+        cancel_url="https://dealradar-kfc5.onrender.com/cancel"
     )
 
     return {"url": session.url}

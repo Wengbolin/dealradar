@@ -184,18 +184,32 @@ async function refreshUser(){
 // ✅ 所有数据统一从后端拿
 async function loadAccountData(){
 
+    const token = localStorage.getItem("token")
+
+    console.log("🔥 当前token =", token)
+
+    // ❗没有token直接跳登录（核心修复）
+    if(!token){
+        console.log("❌ 没有token，跳转登录")
+        window.location.href = "/login"
+        return
+    }
+
     const res = await fetch("/api/account", {
         headers: {
-            "Authorization": "Bearer " + localStorage.getItem("token")
+            "Authorization": "Bearer " + token
         }
     })
 
     const data = await res.json()
 
     if(data.status === "error"){
-        alert("Not logged in")
+        console.log("❌ 后端未识别登录")
+        window.location.href = "/login"
         return
     }
+
+    // ===== 原来的逻辑继续 =====
 
     document.getElementById("todayProfit").innerText = "€" + (data.today_profit || 0)
     document.getElementById("missedProfit").innerText = "€" + (data.missed_profit || 0)
@@ -206,7 +220,6 @@ async function loadAccountData(){
     document.getElementById("username").innerText = data.username || "-"
     document.getElementById("customer").innerText = data.customer_id || "-"
 
-    // 👇👇👇 就加在这里 👇👇👇
     const plan = data.plan || 0
 
     const badge = document.getElementById("planBadge")
@@ -227,8 +240,8 @@ async function loadAccountData(){
         badge.innerText = "Pro"
         desc.innerText = "Full access unlocked"
     }
-
 }
+
 
 // ❗取消订阅保留
 async function cancelSubscription(){

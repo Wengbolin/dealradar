@@ -1,3 +1,4 @@
+import os
 import stripe
 import sqlite3
 from fastapi import APIRouter, Request
@@ -5,7 +6,8 @@ from pathlib import Path
 
 router = APIRouter()
 
-endpoint_secret = "whsec_exmx2KxQ5sIVyYrG1gqAq9nhiqOepseg"
+endpoint_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+print("🔥 WEBHOOK SECRET =", endpoint_secret)
 
 # 数据库路径
 DB_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "market_data.db"
